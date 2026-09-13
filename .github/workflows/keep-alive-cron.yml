@@ -1,0 +1,25 @@
+name: 24/7 FitBizz Backend Keep-Alive Cron
+
+on:
+  schedule:
+    # Runs every 10 minutes, 24 hours a day, 7 days a week
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-backend:
+    name: Ping Cloud Backend Health Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping FitBizz Render / Cloud Backend
+        env:
+          BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://fitbizz-backend.onrender.com' }}
+        run: |
+          echo "Sending 24/7 keep-alive ping to $BACKEND_URL/api/v1/health ..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$BACKEND_URL/api/v1/health" || echo "FAILED")
+          echo "Received HTTP response: $STATUS_CODE"
+          if [ "$STATUS_CODE" == "200" ]; then
+            echo "✅ FitBizz Cloud Core is UP and healthy (200 OK)."
+          else
+            echo "⚠️ Server returned: $STATUS_CODE. Warming up instance."
+          fi
