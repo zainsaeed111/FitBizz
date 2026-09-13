@@ -8,6 +8,7 @@ import '../../core/widgets/app_badge.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_stat_card.dart';
 import '../../core/widgets/app_toast.dart';
+import '../../core/utils/communication_launcher.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToReception;
@@ -24,7 +25,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String _selectedBranch = 'Gulberg Main Arena (HQ)';
+  String _selectedBranch = 'All Branches (Network View)';
 
   final List<Map<String, dynamic>> _recentCheckIns = [
     {
@@ -32,9 +33,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'name': 'Sarah Jenkins',
       'time': '2 mins ago',
       'branch': 'Gulberg Main Arena',
-      'plan': 'Pro VIP',
+      'plan': 'Pro VIP Monthly',
       'status': 'ACTIVE',
       'method': 'QR Scan',
+      'turnstile': 'Gate 01',
     },
     {
       'id': 'MEM-1042',
@@ -44,15 +46,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'plan': 'Standard Monthly',
       'status': 'ACTIVE',
       'method': 'Biometric',
+      'turnstile': 'Gate 02',
     },
     {
       'id': 'MEM-1033',
       'name': 'Hamza Ali',
       'time': '12 mins ago',
       'branch': 'DHA Phase 5 Arena',
-      'plan': 'VIP Multi-Branch',
+      'plan': 'VIP All-Branch',
       'status': 'ACTIVE',
       'method': 'Biometric',
+      'turnstile': 'Main Turnstile',
     },
     {
       'id': 'MEM-1011',
@@ -61,7 +65,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'branch': 'Gulberg Main Arena',
       'plan': 'Standard Monthly',
       'status': 'EXPIRED',
-      'method': 'Manual Desk',
+      'method': 'Desk Check-in',
+      'turnstile': 'Front Reception',
+    },
+    {
+      'id': 'MEM-1094',
+      'name': 'Zainab Fatima',
+      'time': '32 mins ago',
+      'branch': 'DHA Phase 5 Arena',
+      'plan': 'Executive Annual',
+      'status': 'ACTIVE',
+      'method': 'QR Scan',
+      'turnstile': 'Gate 01',
     },
   ];
 
@@ -92,12 +107,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     },
   ];
 
-  void _sendWhatsAppReminder(Map<String, dynamic> item) {
-    AppToast.showSuccess(
-      context,
-      tr('whatsapp_reminder'),
-      '${item['name']} (${item['phone']})',
-    );
+  void _sendWhatsAppReminder(Map<String, dynamic> item) async {
+    final msg = 'Hello ${item['name']}, this is a friendly reminder from Metro Fitness Club regarding your ${item['plan']} renewal of ${formatMoney(item['dueAmount'] as double)} (${item['dueDate']}). Please contact reception to settle.';
+    await CommunicationLauncher.sendWhatsApp(phone: item['phone'], message: msg);
+    if (mounted) {
+      AppToast.showSuccess(
+        context,
+        tr('whatsapp_reminder'),
+        'Reminder dispatched to ${item['name']} (${item['phone']})',
+      );
+    }
   }
 
   void _showCollectFeeDialog(Map<String, dynamic> item) {
@@ -106,28 +125,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              const Icon(Icons.payment, color: AppColors.japaniPhalDark),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.payment, color: AppColors.japaniPhalDark, size: 20),
+              ),
               const SizedBox(width: AppSpacing.sm),
               Text(tr('collect_payment'), style: AppTypography.h3),
             ],
           ),
           content: SizedBox(
-            width: 400,
+            width: 420,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Member: ${item['name']} (${item['id']})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text('Plan: ${item['plan']}', style: const TextStyle(fontSize: 12, color: AppColors.stone500)),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.stone50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.stone200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text(item['id'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Plan: ${item['plan']} • ${item['dueDate']}', style: const TextStyle(fontSize: 11.5, color: AppColors.stone600)),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: tr('collect'),
-                    border: const OutlineInputBorder(),
+                    labelText: '${tr("collect")} Amount (${AppLocaleController.instance.currency})',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    prefixText: '${AppLocaleController.instance.currency} ',
                     isDense: true,
                   ),
                 ),
@@ -140,7 +188,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Text(tr('cancel')),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.japaniPhalDark, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.japaniPhalDark,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               onPressed: () {
                 Navigator.pop(ctx);
                 setState(() {
@@ -148,8 +200,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 });
                 AppToast.showSuccess(
                   context,
-                  tr('confirm'),
-                  '${item['name']} - ${amountController.text}',
+                  'Fee Payment Recorded',
+                  'Collected ${formatMoney(double.tryParse(amountController.text) ?? 0)} from ${item['name']}. Invoice generated.',
                 );
               },
               child: Text(tr('confirm')),
@@ -178,12 +230,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: AppSpacing.lg),
 
-              // 2. Key Operational Metrics Grid (100% Translated)
+              // 2. Key Operational Metrics Grid (100% Overflow-Free)
               _buildMetricsGrid(isDesktop),
 
               const SizedBox(height: AppSpacing.lg),
 
-              // 3. Multi-Branch Operations Bar
+              // 3. Multi-Branch Operations & Capacity Bar
               _buildBranchOperationsCard(isDesktop),
 
               const SizedBox(height: AppSpacing.lg),
@@ -238,9 +290,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.japaniPhal.withValues(alpha: 0.12),
+                  gradient: const LinearGradient(
+                    colors: [AppColors.japaniPhal, AppColors.japaniPhalDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.japaniPhal.withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.japaniPhalDark.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Center(
                   child: Text('🏋️', style: TextStyle(fontSize: 22)),
@@ -282,7 +344,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${tr('welcome')}, Kamran Ahmed (Owner) • Gulberg & DHA Branches',
+                      '${tr('welcome')}, Kamran Ahmed (Owner) • 2 Branches Active • 450 Total Members',
                       style: AppTypography.caption.copyWith(color: AppColors.stone500, fontSize: 12),
                     ),
                   ],
@@ -303,11 +365,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       isDense: true,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone800),
                       items: const [
+                        DropdownMenuItem(value: 'All Branches (Network View)', child: Text('🌐 All Branches (Network View)')),
                         DropdownMenuItem(value: 'Gulberg Main Arena (HQ)', child: Text('🏢 Gulberg Main Arena (HQ)')),
                         DropdownMenuItem(value: 'DHA Phase 5 Arena', child: Text('🏢 DHA Phase 5 Arena')),
-                        DropdownMenuItem(value: 'All Branches (Network View)', child: Text('🌐 All Branches (Network View)')),
                       ],
-                      onChanged: (v) => setState(() => _selectedBranch = v ?? 'Gulberg Main Arena (HQ)'),
+                      onChanged: (v) => setState(() => _selectedBranch = v ?? 'All Branches (Network View)'),
                     ),
                   ),
                 ),
@@ -356,7 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: const Icon(Icons.receipt_long, size: 16, color: AppColors.green600),
                 label: Text(tr('dash_fee_ledger'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () {
-                  AppToast.showInfo(context, tr('dash_fee_ledger'), tr('bill_subtitle'));
+                  AppToast.showInfo(context, tr('dash_fee_ledger'), 'Opening ledger with ₨385,000 collected & 3 pending invoices.');
                 },
               ),
             ],
@@ -366,54 +428,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// 4 Key KPI Metrics Cards (Translated)
+  /// 4 Key KPI Metrics Cards (Zero-Overflow Protected)
   Widget _buildMetricsGrid(bool isDesktop) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = isDesktop ? 4 : 2;
-        return GridView.count(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: AppSpacing.md,
-          mainAxisSpacing: AppSpacing.md,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: isDesktop ? 1.7 : 1.3,
+    final c1 = AppStatCard(
+      title: tr('stat_total_members'),
+      value: '450',
+      subtitle: 'Gulberg: 280 • DHA: 170',
+      trend: '+18 this wk',
+      isPositiveTrend: true,
+      icon: Icons.people_alt_outlined,
+      iconColor: AppColors.japaniPhalDark,
+      onTap: widget.onNavigateToMembers,
+    );
+
+    final c2 = AppStatCard(
+      title: tr('stat_today_checkins'),
+      value: '128',
+      subtitle: 'Peak: 6:00 PM • 23 in gym now',
+      trend: '● Live Pulse',
+      isPositiveTrend: true,
+      icon: Icons.qr_code_scanner,
+      iconColor: AppColors.green600,
+      onTap: widget.onNavigateToReception,
+    );
+
+    final c3 = AppStatCard(
+      title: tr('stat_monthly_revenue'),
+      value: formatMoney(385000),
+      subtitle: 'Total: ${formatMoney(410000)} • 6 Due',
+      trend: '94% Collected',
+      isPositiveTrend: true,
+      icon: Icons.account_balance_wallet_outlined,
+      iconColor: AppColors.japaniPhalDark,
+    );
+
+    final c4 = AppStatCard(
+      title: tr('stat_sync_status'),
+      value: '100% OK',
+      subtitle: '2 Turnstiles Online • SQLite Sync',
+      trend: '⚡ 0ms Latency',
+      isPositiveTrend: true,
+      icon: Icons.cloud_done_outlined,
+      iconColor: AppColors.green600,
+    );
+
+    if (isDesktop) {
+      return Row(
+        children: [
+          Expanded(child: c1),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: c2),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: c3),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: c4),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Row(
           children: [
-            AppStatCard(
-              title: tr('stat_total_members'),
-              value: '450',
-              subtitle: tr('stat_total_members_sub'),
-              icon: Icons.people_alt_outlined,
-              iconColor: AppColors.japaniPhalDark,
-            ),
-            AppStatCard(
-              title: tr('stat_today_checkins'),
-              value: '128',
-              subtitle: tr('stat_today_checkins_sub'),
-              icon: Icons.qr_code_scanner,
-              iconColor: AppColors.green600,
-            ),
-            AppStatCard(
-              title: tr('stat_monthly_revenue'),
-              value: formatMoney(385000),
-              subtitle: tr('stat_monthly_revenue_sub'),
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: AppColors.japaniPhalDark,
-            ),
-            AppStatCard(
-              title: tr('stat_sync_status'),
-              value: '100% OK',
-              subtitle: tr('stat_sync_status_sub'),
-              icon: Icons.cloud_done_outlined,
-              iconColor: AppColors.green600,
-            ),
+            Expanded(child: c1),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: c2),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(child: c3),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: c4),
+          ],
+        ),
+      ],
     );
   }
 
-  /// Multi-Branch Health & Status Card
+  /// Multi-Branch Health & Status Card with Capacity Meters
   Widget _buildBranchOperationsCard(bool isDesktop) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -446,71 +540,139 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
+          Flex(
+            direction: isDesktop ? Axis.horizontal : Axis.vertical,
             children: [
+              // Branch 1: Gulberg HQ
               Expanded(
+                flex: isDesktop ? 1 : 0,
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.stone50,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.stone200),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.japaniPhal.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.fitness_center, size: 18, color: AppColors.japaniPhalDark),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.fitness_center, size: 18, color: AppColors.japaniPhalDark),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Gulberg Main Arena (HQ)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Turnstiles 1 & 2 Online • Biometric Sync OK', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
+                              ],
+                            ),
+                          ),
+                          AppBadge(label: tr('live'), variant: AppBadgeVariant.active),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Gulberg Main Arena (HQ)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('280 Members • Turnstile 1 & 2 Online', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
-                          ],
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Capacity: 280 / 300 Members', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.stone700)),
+                          Text('93.3%', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.green600)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: const LinearProgressIndicator(
+                          value: 0.933,
+                          minHeight: 6,
+                          backgroundColor: AppColors.stone200,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.green600),
                         ),
                       ),
-                      AppBadge(label: tr('live'), variant: AppBadgeVariant.active),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Monthly Revenue: ${formatMoney(245000)}', style: const TextStyle(fontSize: 11, color: AppColors.stone500, fontWeight: FontWeight.w600)),
+                          const Text('86 Today Visits', style: TextStyle(fontSize: 11, color: AppColors.japaniPhalDark, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              if (isDesktop) const SizedBox(width: AppSpacing.md) else const SizedBox(height: AppSpacing.md),
+
+              // Branch 2: DHA Phase 5
               Expanded(
+                flex: isDesktop ? 1 : 0,
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.stone50,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.stone200),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.japaniPhal.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.store, size: 18, color: AppColors.japaniPhalDark),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.store, size: 18, color: AppColors.japaniPhalDark),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('DHA Phase 5 Arena', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Reception Terminal Active • Camera Optical OK', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
+                              ],
+                            ),
+                          ),
+                          AppBadge(label: tr('live'), variant: AppBadgeVariant.active),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('DHA Phase 5 Arena', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('170 Members • Reception Terminal Active', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
-                          ],
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Capacity: 170 / 250 Members', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.stone700)),
+                          const Text('68.0%', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: const LinearProgressIndicator(
+                          value: 0.68,
+                          minHeight: 6,
+                          backgroundColor: AppColors.stone200,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.japaniPhalDark),
                         ),
                       ),
-                      AppBadge(label: tr('live'), variant: AppBadgeVariant.active),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Monthly Revenue: ${formatMoney(140000)}', style: const TextStyle(fontSize: 11, color: AppColors.stone500, fontWeight: FontWeight.w600)),
+                          const Text('42 Today Visits', style: TextStyle(fontSize: 11, color: AppColors.japaniPhalDark, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -597,7 +759,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                           Text(
-                            '${item['id']} • ${item['branch']} • ${item['plan']}',
+                            '${item['id']} • ${item['branch']} • ${item['turnstile'] ?? "Main Gate"}',
                             style: const TextStyle(fontSize: 11, color: AppColors.stone500),
                           ),
                         ],
@@ -692,21 +854,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               InkWell(
                                 onTap: () => _sendWhatsAppReminder(item),
+                                borderRadius: BorderRadius.circular(4),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: AppColors.green600.withValues(alpha: 0.12),
+                                    color: const Color(0xFF25D366).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: AppColors.green600.withValues(alpha: 0.3)),
+                                    border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3)),
                                   ),
-                                  child: Text('💬 ${tr("whatsapp_reminder")}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.green600)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.chat, size: 11, color: Color(0xFF25D366)),
+                                      const SizedBox(width: 3),
+                                      Text(tr('whatsapp_reminder'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF25D366))),
+                                    ],
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 4),
                               InkWell(
                                 onTap: () => _showCollectFeeDialog(item),
+                                borderRadius: BorderRadius.circular(4),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: AppColors.japaniPhalDark,
                                     borderRadius: BorderRadius.circular(4),
@@ -724,7 +895,5 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
         ],
-      ),
-    );
   }
 }
