@@ -16,13 +16,20 @@ class MemberModel {
   String? paymentRef;
   double? cashTendered;
   double? changeReturned;
-  String status; // ACTIVE, EXPIRED, SUSPENDED, FROZEN
+  
+  String _status;
+  String get status => (_status.isNotEmpty) ? _status : 'ACTIVE';
+  set status(String val) => _status = val;
+
+  String _feeStatus;
+  String get feeStatus => (_feeStatus.isNotEmpty) ? _feeStatus : 'PAID';
+  set feeStatus(String val) => _feeStatus = val;
+
+  double dueAmount;
+
   String joinedDate;
   String expiryDate;
   int checkInCount;
-
-  String feeStatus; // PAID, DUE, OVERDUE, PARTIAL
-  double dueAmount;
 
   // Health & Diet Profile (Optional)
   String gender; // Male, Female, Other
@@ -54,8 +61,8 @@ class MemberModel {
     this.paymentRef,
     this.cashTendered,
     this.changeReturned,
-    this.status = 'ACTIVE',
-    this.feeStatus = 'PAID',
+    String status = 'ACTIVE',
+    String feeStatus = 'PAID',
     this.dueAmount = 0.0,
     required this.joinedDate,
     required this.expiryDate,
@@ -70,7 +77,8 @@ class MemberModel {
     this.medicalNotes,
     this.emergencyContactName,
     this.emergencyContactPhone,
-  });
+  })  : _status = status,
+        _feeStatus = feeStatus;
 
   String get qrPayload => 'FITBIZZ_PASS:tenant-001:$memberNumber:$phone';
 
