@@ -10,6 +10,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../members/member_list_screen.dart';
 import '../reception/reception_screen.dart';
 import '../billing/billing_screen.dart';
+import '../plans/membership_plans_screen.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final AuthState authState;
@@ -94,7 +95,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ));
     }
 
-    // 4. Fee Ledger & Billing
+    // 4. Membership Plans & Packages (Owner, Super Admin, Billing Staff)
+    if (widget.authState.isOwner || widget.authState.isSuperAdmin || widget.authState.canAccessBilling) {
+      items.add(const NavigationItemConfig(
+        icon: Icons.card_membership_outlined,
+        activeIcon: Icons.card_membership,
+        labelKey: 'nav_subscriptions',
+        screen: MembershipPlansScreen(),
+      ));
+    }
+
+    // 5. Fee Ledger & Billing
     if (widget.authState.canAccessBilling) {
       items.add(const NavigationItemConfig(
         icon: Icons.receipt_long_outlined,

@@ -8,6 +8,8 @@ import '../../core/widgets/app_badge.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/app_toast.dart';
+import '../plans/membership_plans_controller.dart';
 
 class MemberListScreen extends StatefulWidget {
   const MemberListScreen({super.key});
@@ -82,7 +84,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
     final dobController = TextEditingController(text: '1998-05-14');
     final refController = TextEditingController();
 
-    String selectedTier = 'MONTHLY_STANDARD';
+    final plans = MembershipPlansController.instance.plans;
+    String selectedPlanId = MembershipPlansController.instance.defaultPlan?.id ??
+        (plans.isNotEmpty ? plans.first.id : 'plan_basic');
     String paymentMode = 'CASH';
 
     showDialog(
@@ -90,27 +94,43 @@ class _MemberListScreenState extends State<MemberListScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final double fee = selectedTier == 'YEARLY_VIP'
-                ? 48000.0
-                : (selectedTier == 'QUARTERLY_PRO' ? 13500.0 : 5000.0);
+            final selectedPlan = plans.firstWhere(
+              (p) => p.id == selectedPlanId,
+              orElse: () => plans.first,
+            );
+
+            final double totalFee = selectedPlan.totalEnrollmentFee;
 
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
                 children: [
-                  Text('Admit New Gym Member', style: AppTypography.h2),
-                  Text('Configure membership plan, CNIC, and fee status', style: AppTypography.caption),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.person_add, color: AppColors.japaniPhalDark, size: 20),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Admit New Gym Member', style: AppTypography.h2),
+                      Text('Select membership package, CNIC, and fee collection', style: AppTypography.caption),
+                    ],
+                  ),
                 ],
               ),
               content: SizedBox(
-                width: 520,
+                width: 540,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppTextField(label: 'Member Full Name *', hint: 'e.g. Usman Ali', controller: nameController),
+                      AppTextField(label: 'Member Full Name *', hint: 'e.g. Usman Ali, Tauseef', controller: nameController),
                       const SizedBox(height: AppSpacing.sm),
                       Row(
                         children: [
@@ -123,39 +143,98 @@ class _MemberListScreenState extends State<MemberListScreen> {
                       AppTextField(label: 'Date of Birth', hint: '1998-05-14', controller: dobController),
                       const SizedBox(height: AppSpacing.md),
 
-                      Text('Choose Membership Tier:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: AppSpacing.xs),
+                      // Dynamic Membership Plans Selector
+                      Text('Choose Configured Membership Plan:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('Monthly (5k)'),
-                            selected: selectedTier == 'MONTHLY_STANDARD',
-                            selectedColor: AppColors.japaniPhal,
-                            labelStyle: TextStyle(color: selectedTier == 'MONTHLY_STANDARD' ? Colors.white : AppColors.primaryText),
-                            onSelected: (_) => setModalState(() => selectedTier = 'MONTHLY_STANDARD'),
-                          ),
-                          ChoiceChip(
-                            label: const Text('Quarterly (13.5k)'),
-                            selected: selectedTier == 'QUARTERLY_PRO',
-                            selectedColor: AppColors.japaniPhal,
-                            labelStyle: TextStyle(color: selectedTier == 'QUARTERLY_PRO' ? Colors.white : AppColors.primaryText),
-                            onSelected: (_) => setModalState(() => selectedTier = 'QUARTERLY_PRO'),
-                          ),
-                          ChoiceChip(
-                            label: const Text('Yearly VIP (48k)'),
-                            selected: selectedTier == 'YEARLY_VIP',
-                            selectedColor: AppColors.japaniPhal,
-                            labelStyle: TextStyle(color: selectedTier == 'YEARLY_VIP' ? Colors.white : AppColors.primaryText),
-                            onSelected: (_) => setModalState(() => selectedTier = 'YEARLY_VIP'),
-                          ),
-                        ],
+                        children: plans.map((plan) {
+                          final isSelected = plan.id == selectedPlanId;
+                          return ChoiceChip(
+                            label: Text('${plan.name} (${formatMoney(plan.monthlyFee)}/mo)'),
+                            selected: isSelected,
+                            selectedColor: AppColors.japaniPhalDark,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.stone800,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 11.5,
+                            ),
+                            onSelected: (_) => setModalState(() => selectedPlanId = plan.id),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+
+                      // Plan Highlights & Fee Breakdown Card
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.stone50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.stone200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  selectedPlan.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.stone900),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    selectedPlan.badge,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '• Duration: ${selectedPlan.durationLabel}',
+                              style: const TextStyle(fontSize: 11, color: AppColors.stone600),
+                            ),
+                            Text(
+                              '• Admission Fee: ${formatMoney(selectedPlan.admissionFee)} + Monthly Fee: ${formatMoney(selectedPlan.monthlyFee * selectedPlan.durationMonths)}',
+                              style: const TextStyle(fontSize: 11, color: AppColors.stone600),
+                            ),
+                            if (selectedPlan.hasTrainerSupport)
+                              Text(
+                                '• 🏋️ Trainer: ${selectedPlan.trainerSupportNote ?? "Trainer Guidance Included"}',
+                                style: const TextStyle(fontSize: 11, color: AppColors.green600, fontWeight: FontWeight.bold),
+                              )
+                            else
+                              const Text(
+                                '• Self-Workout (No Personal Trainer)',
+                                style: TextStyle(fontSize: 11, color: AppColors.stone500),
+                              ),
+                            if (selectedPlan.hasMealPlan)
+                              const Text('• 🥗 Customized Diet & Meal Plan Included', style: TextStyle(fontSize: 11, color: AppColors.green600, fontWeight: FontWeight.bold)),
+                            if (selectedPlan.isMultiBranch)
+                              const Text('• 🌐 All-Branch Access Included', style: TextStyle(fontSize: 11, color: AppColors.japaniPhalDark, fontWeight: FontWeight.bold)),
+                            const Divider(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total Initial Fee Payable:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.stone700)),
+                                Text(formatMoney(totalFee), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.japaniPhalDark)),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
 
-                      Text('Fee Payment Mode (Total: PKR ${fee.toStringAsFixed(0)}):', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: AppSpacing.xs),
+                      Text('Fee Payment Mode:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -164,21 +243,28 @@ class _MemberListScreenState extends State<MemberListScreen> {
                             label: const Text('💵 Cash Payment'),
                             selected: paymentMode == 'CASH',
                             selectedColor: AppColors.green600,
-                            labelStyle: TextStyle(color: paymentMode == 'CASH' ? Colors.white : AppColors.primaryText),
+                            labelStyle: TextStyle(color: paymentMode == 'CASH' ? Colors.white : AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 11),
                             onSelected: (_) => setModalState(() => paymentMode = 'CASH'),
                           ),
                           ChoiceChip(
-                            label: const Text('💳 Online Transfer'),
+                            label: const Text('💳 Online Bank Transfer'),
                             selected: paymentMode == 'ONLINE',
                             selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: paymentMode == 'ONLINE' ? Colors.white : AppColors.primaryText),
+                            labelStyle: TextStyle(color: paymentMode == 'ONLINE' ? Colors.white : AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 11),
                             onSelected: (_) => setModalState(() => paymentMode = 'ONLINE'),
+                          ),
+                          ChoiceChip(
+                            label: const Text('📱 EasyPaisa / JazzCash'),
+                            selected: paymentMode == 'WALLET',
+                            selectedColor: const Color(0xFF0070BA),
+                            labelStyle: TextStyle(color: paymentMode == 'WALLET' ? Colors.white : AppColors.primaryText, fontWeight: FontWeight.bold, fontSize: 11),
+                            onSelected: (_) => setModalState(() => paymentMode = 'WALLET'),
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      if (paymentMode == 'ONLINE')
-                        AppTextField(label: 'Online Transaction Ref ID', hint: 'TRX-9823471', controller: refController),
+                      if (paymentMode != 'CASH')
+                        AppTextField(label: 'Transaction / Receipt Ref ID', hint: 'TRX-9823471', controller: refController),
                     ],
                   ),
                 ),
@@ -192,27 +278,42 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 AppButton(
                   label: 'Confirm & Issue Pass',
                   onPressed: () {
-                    if (nameController.text.isNotEmpty) {
-                      final rollNum = 'PULSE-2026-${1001 + _members.length}';
-                      setState(() {
-                        _members.insert(0, {
-                          'id': 'mem_${DateTime.now().millisecondsSinceEpoch}',
-                          'number': rollNum,
-                          'name': nameController.text.trim(),
-                          'email': 'member@gym.com',
-                          'phone': phoneController.text.trim(),
-                          'cnic': cnicController.text.trim(),
-                          'dob': dobController.text.trim(),
-                          'status': 'ACTIVE',
-                          'plan': selectedTier.replaceAll('_', ' '),
-                          'joined': 'Today',
-                          'expires': selectedTier == 'YEARLY_VIP' ? '1 Year' : '1 Month',
-                          'checkIns': '0 Visits',
-                          'payment': paymentMode,
-                        });
-                      });
+                    if (nameController.text.trim().isEmpty) {
+                      AppToast.showError(context, 'Validation Error', 'Member Name is required.');
+                      return;
                     }
+
+                    final rollNum = 'PULSE-2026-${1001 + _members.length}';
+                    final expDuration = selectedPlan.durationMonths == 12
+                        ? '1 Year'
+                        : (selectedPlan.durationMonths == 6
+                            ? '6 Months'
+                            : (selectedPlan.durationMonths == 3 ? '3 Months' : '1 Month'));
+
+                    setState(() {
+                      _members.insert(0, {
+                        'id': 'mem_${DateTime.now().millisecondsSinceEpoch}',
+                        'number': rollNum,
+                        'name': nameController.text.trim(),
+                        'email': 'member@gym.com',
+                        'phone': phoneController.text.trim().isEmpty ? '+92 300 1234567' : phoneController.text.trim(),
+                        'cnic': cnicController.text.trim().isEmpty ? '35202-0000000-1' : cnicController.text.trim(),
+                        'dob': dobController.text.trim(),
+                        'status': 'ACTIVE',
+                        'plan': selectedPlan.name,
+                        'joined': 'Today',
+                        'expires': expDuration,
+                        'checkIns': '0 Visits',
+                        'payment': paymentMode,
+                      });
+                    });
+
                     Navigator.pop(context);
+                    AppToast.showSuccess(
+                      context,
+                      'Member Enrolled Successfully',
+                      'Enrolled ${nameController.text.trim()} under ${selectedPlan.name} (${formatMoney(totalFee)}). Pass $rollNum issued.',
+                    );
                   },
                 ),
               ],
