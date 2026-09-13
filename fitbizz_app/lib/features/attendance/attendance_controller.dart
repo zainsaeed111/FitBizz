@@ -27,6 +27,10 @@ class AttendanceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void refresh() {
+    notifyListeners();
+  }
+
   // --- 1. INITIALIZE STAFF MEMBERS ---
   void _initStaffMembers() {
     _staff.clear();
@@ -493,9 +497,135 @@ class AttendanceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  final AttendancePolicySettings _policySettings = AttendancePolicySettings();
+  final Map<String, MemberBiometricProfile> _biometricProfiles = {};
+
+  AttendancePolicySettings get policySettings => _policySettings;
+
+  void updatePolicySettings({
+    required bool allowManualAdmin,
+    required bool allowMember1Tap,
+    required bool allowBiometricMachine,
+    required bool allowFaceRecognition,
+    required bool allowGeofencing,
+    required double geofenceRadius,
+    required bool allowSelfFaceEnrollment,
+    required bool allowSelfFingerEnrollment,
+  }) {
+    _policySettings.allowManualAdminMarking = allowManualAdmin;
+    _policySettings.allowMemberApp1Tap = allowMember1Tap;
+    _policySettings.allowBiometricMachine = allowBiometricMachine;
+    _policySettings.allowFaceRecognition = allowFaceRecognition;
+    _policySettings.allowGeofencing = allowGeofencing;
+    _policySettings.geofenceMaxRadiusMeters = geofenceRadius;
+    _policySettings.allowMemberSelfFaceEnrollment = allowSelfFaceEnrollment;
+    _policySettings.allowMemberSelfFingerEnrollment = allowSelfFingerEnrollment;
+    notifyListeners();
+  }
+
+  // --- BIOMETRIC & FACE ENROLLMENT ---
+  MemberBiometricProfile getMemberBiometricProfile(String memberId) {
+    return _biometricProfiles.putIfAbsent(
+      memberId,
+      () => MemberBiometricProfile(
+        memberId: memberId,
+        isFingerprintEnrolled: memberId == 'MEM-A819C1' || memberId == 'MEM-B920D2',
+        fingerprintEnrolledDate: memberId == 'MEM-A819C1' ? '2026-09-01' : null,
+        isFaceEnrolled: memberId == 'MEM-A819C1',
+        faceEnrolledDate: memberId == 'MEM-A819C1' ? '2026-09-02' : null,
+      ),
+    );
+  }
+
+  void enrollMemberFingerprint(String memberId) {
+    final profile = getMemberBiometricProfile(memberId);
+    profile.isFingerprintEnrolled = true;
+    profile.fingerprintEnrolledDate = _formatDate(DateTime.now());
+    notifyListeners();
+  }
+
+  void enrollMemberFace(String memberId, {String? photoUrl}) {
+    final profile = getMemberBiometricProfile(memberId);
+    profile.isFaceEnrolled = true;
+    profile.faceEnrolledDate = _formatDate(DateTime.now());
+    if (photoUrl != null) profile.facePhotoUrl = photoUrl;
+    notifyListeners();
+  }
+
+  // Member 1-Tap App Check-in
+  bool triggerMember1TapCheckIn(String memberId, {double distanceMeters = 15.0}) {
+    if (!_policySettings.isButtonAllowed || !_policySettings.allowMemberApp1Tap) return false;
+    if (_policySettings.allowGeofencing && distanceMeters > _policySettings.geofenceMaxRadiusMeters) {
+      return false;
+    }
+    triggerBiometricCheckIn(
+      entityId: memberId,
+      type: AttendanceType.member,
+      method: CheckInMethod.geofenceApp,
+      customNotes: 'Member App 1-Tap Check-In (${distanceMeters.toStringAsFixed(1)}m from Gym HQ)',
+    );
+    return true;
+  }
+
+  // Member Fingerprint Punch
+  bool triggerMemberFingerprintPunch(String memberId) {
+    if (!_policySettings.isFingerprintAllowed || !_policySettings.allowBiometricMachine) return false;
+    final profile = getMemberBiometricProfile(memberId);
+    if (!profile.isFingerprintEnrolled) {
+      enrollMemberFingerprint(memberId);
+    }
+    triggerBiometricCheckIn(
+      entityId: memberId,
+      type: AttendanceType.member,
+      method: CheckInMethod.biometricFinger,
+      customNotes: 'Biometric Sensor Punch Verified',
+    );
+    return true;
+  }
+
+  // Member Face Recognition Attendance Punch
+  bool triggerMemberFacePunch(String memberId, {double matchConfidence = 0.98}) {
+    if (!_policySettings.isFaceAllowed || !_policySettings.allowFaceRecognition) return false;
+    final profile = getMemberBiometricProfile(memberId);
+    if (!profile.isFaceEnrolled) {
+      enrollMemberFace(memberId);
+    }
+
+    triggerBiometricCheckIn(
+      entityId: memberId,
+      type: AttendanceType.member,
+      method: CheckInMethod.biometricFace,
+      customNotes: 'AI Face Match Verified (${(matchConfidence * 100).toStringAsFixed(1)}% confidence)',
+    );
+    return true;
+  }
+
+  // Member Attendance History & Stats
+  List<AttendanceRecord> getMemberHistory(String memberId) {
+    return _records.where((r) => r.entityId == memberId).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  int getMemberMonthlyPresentCount(String memberId) {
+    return _records.where((r) => r.entityId == memberId && r.status != AttendanceStatus.absent).length;
+  }
+
+  int getMemberStreak(String memberId) {
+    final history = getMemberHistory(memberId);
+    int streak = 0;
+    for (final rec in history) {
+      if (rec.status != AttendanceStatus.absent) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return max(1, streak);
+  }
+
   // Geofenced Self Check-in (< 100 meters)
   bool geofenceSelfCheckIn(String memberId, double simulatedDistanceMeters) {
-    if (simulatedDistanceMeters > 100.0) {
+    if (simulatedDistanceMeters > _policySettings.geofenceMaxRadiusMeters) {
       return false; // Out of range
     }
     triggerBiometricCheckIn(

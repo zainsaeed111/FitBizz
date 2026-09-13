@@ -36,6 +36,8 @@ export default function AttendancePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [showSimulatorModal, setShowSimulatorModal] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [attendanceMode, setAttendanceMode] = useState<"HYBRID" | "BIOMETRIC_ONLY" | "FACE_ONLY" | "MANUAL_ONLY">("HYBRID");
   const [toast, setToast] = useState<{ title: string; message: string } | null>(null);
 
   // Hardware Configuration State
@@ -743,10 +745,107 @@ export default function AttendancePage() {
           </div>
         )}
 
-        {/* TAB 4: BIOMETRIC HARDWARE & GEOFENCE */}
+        {/* TAB 4: BIOMETRIC HARDWARE & POLICY SETUP */}
         {activeTab === "HARDWARE" && (
           <div className="space-y-6">
-            {/* TCP/IP Bridge */}
+            {/* 1. Master Attendance Mode & Policy Config */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎛️</span>
+                  <div>
+                    <h3 className="font-black text-stone-900 text-base">Gym Attendance Mode & Policy Setup</h3>
+                    <p className="text-xs text-stone-500">Configure how members and staff can mark attendance in your gym facility</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                  Policy Active
+                </span>
+              </div>
+
+              {/* 4 Mode Radio Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                {[
+                  { id: "HYBRID", title: "🌟 Hybrid Mode", desc: "Manual + Biometrics + Face ID + 1-Tap App" },
+                  { id: "BIOMETRIC_ONLY", title: "🖐️ Biometric Machine Only", desc: "Strict fingerprint turnstile & sensor punch" },
+                  { id: "FACE_ONLY", title: "📸 Face Recognition Only", desc: "AI facial scan camera & selfie recognition" },
+                  { id: "MANUAL_ONLY", title: "📋 Manual & App 1-Tap", desc: "Front desk marking + member app button" },
+                ].map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      setAttendanceMode(m.id as any);
+                      showNotification("Operating Mode Changed", `Gym Attendance mode set to ${m.title}.`);
+                    }}
+                    className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                      attendanceMode === m.id
+                        ? "bg-orange-50/70 border-orange-500 shadow-xs"
+                        : "bg-stone-50 border-stone-200 hover:bg-stone-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        type="radio"
+                        checked={attendanceMode === m.id}
+                        onChange={() => setAttendanceMode(m.id as any)}
+                        className="accent-orange-600"
+                      />
+                      <span className="font-bold text-stone-900 text-xs">{m.title}</span>
+                    </div>
+                    <p className="text-[10.5px] text-stone-500 pl-5">{m.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Member Biometric & Face ID Enrollment Directory */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🪪</span>
+                  <div>
+                    <h3 className="font-black text-stone-900 text-base">Member Biometric & Face ID Enrollment Directory</h3>
+                    <p className="text-xs text-stone-500">Manage member fingerprint registrations and facial scan profiles for seamless check-in</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMemberModal(true)}
+                  className="px-3.5 py-1.5 rounded-xl border border-orange-600 text-orange-600 hover:bg-orange-50 font-bold text-xs flex items-center gap-1.5"
+                >
+                  <span>📱</span> Test Member App View
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {attendanceLogs.filter((r) => r.type === "MEMBER").map((m) => (
+                  <div key={m.id} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={m.photoUrl} alt={m.entityName} className="w-9 h-9 rounded-full object-cover border border-stone-200" />
+                      <div>
+                        <span className="font-bold text-stone-900 text-xs block">{m.entityName}</span>
+                        <span className="font-mono text-stone-500 text-[10px]">{m.entityIdentifier} • {m.departmentOrPlan}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => showNotification("Fingerprint Enrolled", `Biometric fingerprint registered for ${m.entityName}.`)}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10.5px] hover:bg-emerald-100 flex items-center gap-1"
+                      >
+                        🖐️ Fingerprint: ✅ Enrolled
+                      </button>
+                      <button
+                        onClick={() => showNotification("Face ID Registered", `AI Face ID profile scanned and saved for ${m.entityName}.`)}
+                        className="px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 border border-stone-300 font-bold text-[10.5px] hover:bg-stone-200 flex items-center gap-1"
+                      >
+                        📸 Face ID: ✅ Enrolled
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. TCP/IP Socket Bridge */}
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -786,44 +885,104 @@ export default function AttendancePage() {
                 📡 Test TCP Socket Ping
               </button>
             </div>
+          </div>
+        )}
 
-            {/* Geofence Radar Slider */}
-            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📍</span>
+        {/* MODAL: MEMBER APP SELF-CHECKIN & HISTORY */}
+        {showMemberModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 border border-stone-200 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📱</span>
+                  <h3 className="font-black text-stone-900 text-base">Member App Check-In & History</h3>
+                </div>
+                <button onClick={() => setShowMemberModal(false)} className="text-stone-400 hover:text-stone-700 text-sm font-bold">
+                  ✕
+                </button>
+              </div>
+
+              {/* Member Card Header */}
+              <div className="p-4 bg-gradient-to-r from-orange-500 to-orange-700 rounded-2xl text-white flex items-center gap-3">
+                <img src={attendanceLogs[0].photoUrl} alt="Member" className="w-12 h-12 rounded-full border-2 border-white/50 object-cover" />
                 <div>
-                  <h3 className="font-black text-stone-900 text-base">Member Mobile App Geofence Radar</h3>
-                  <p className="text-xs text-stone-500">Self check-in is allowed only when member phone is physically within gym radius</p>
+                  <h4 className="font-black text-sm">{attendanceLogs[0].entityName}</h4>
+                  <p className="text-xs text-white/80">{attendanceLogs[0].entityIdentifier} • Silver Plan</p>
+                  <div className="flex gap-2 mt-1 text-[10.5px]">
+                    <span className="px-2 py-0.5 rounded-md bg-white/20 font-bold">🔥 14 Days Streak</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/20 font-bold">📅 26 Days This Month</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Allowed Gym Radius:</span>
-                  <span className="text-orange-600">{geofenceRadius} meters (HQ Arena)</span>
+              {/* Policy Restriction Alert */}
+              {attendanceMode === "BIOMETRIC_ONLY" && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-center gap-2 font-bold">
+                  <span>⚠️</span> Gym Policy: 1-Tap Button is restricted. Please use Biometric Fingerprint or Face Recognition.
                 </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="200"
-                  value={geofenceRadius}
-                  onChange={(e) => setGeofenceRadius(Number(e.target.value))}
-                  className="w-full accent-orange-600"
-                />
+              )}
+
+              {/* 3 Punch Buttons */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  disabled={attendanceMode === "BIOMETRIC_ONLY" || attendanceMode === "FACE_ONLY"}
+                  onClick={() => {
+                    handleUpdateStatus(attendanceLogs[0].id, "PRESENT");
+                    showNotification("Checked In", `${attendanceLogs[0].entityName} marked present via 1-Tap App button.`);
+                  }}
+                  className={`py-2.5 rounded-xl font-bold text-xs flex flex-col items-center gap-1 ${
+                    attendanceMode === "BIOMETRIC_ONLY" || attendanceMode === "FACE_ONLY"
+                      ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                >
+                  <span className="text-base">👆</span> 1-Tap Button
+                </button>
+                <button
+                  disabled={attendanceMode === "FACE_ONLY" || attendanceMode === "MANUAL_ONLY"}
+                  onClick={() => {
+                    handleUpdateStatus(attendanceLogs[0].id, "PRESENT");
+                    showNotification("Fingerprint Verified", `Turnstile punch recorded for ${attendanceLogs[0].entityName}.`);
+                  }}
+                  className={`py-2.5 rounded-xl font-bold text-xs flex flex-col items-center gap-1 ${
+                    attendanceMode === "FACE_ONLY" || attendanceMode === "MANUAL_ONLY"
+                      ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                      : "bg-orange-600 hover:bg-orange-700 text-white"
+                  }`}
+                >
+                  <span className="text-base">🖐️</span> Fingerprint
+                </button>
+                <button
+                  disabled={attendanceMode === "BIOMETRIC_ONLY" || attendanceMode === "MANUAL_ONLY"}
+                  onClick={() => {
+                    handleUpdateStatus(attendanceLogs[0].id, "PRESENT");
+                    showNotification("Face Match 99.4%", `Facial turnstile unlocked for ${attendanceLogs[0].entityName}.`);
+                  }}
+                  className={`py-2.5 rounded-xl font-bold text-xs flex flex-col items-center gap-1 ${
+                    attendanceMode === "BIOMETRIC_ONLY" || attendanceMode === "MANUAL_ONLY"
+                      ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                      : "bg-stone-900 hover:bg-stone-800 text-white"
+                  }`}
+                >
+                  <span className="text-base">📸</span> Face Scan
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  if (geofenceRadius <= 100) {
-                    showNotification("Geofence Verified", `Zain Malik checked in (${geofenceRadius}m from Gym).`);
-                  } else {
-                    alert("Outside Allowed Range (>100m). Check-in rejected.");
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
-              >
-                🛰️ Simulate Mobile Self Check-in ({geofenceRadius}m)
-              </button>
+              {/* History List */}
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pt-2 border-t border-stone-100">
+                <span className="text-xs font-bold text-stone-700 block">Past Workout Logs:</span>
+                {["2026-09-13", "2026-09-12", "2026-09-11", "2026-09-10"].map((dt, idx) => (
+                  <div key={idx} className="p-2 bg-stone-50 rounded-lg border border-stone-200 flex justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-stone-900 block">{dt}</span>
+                      <span className="text-[10px] text-stone-500">Check-in: 06:45 AM • Fingerprint</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] self-center">
+                      Present
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -835,7 +994,7 @@ export default function AttendancePage() {
               <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">⚡</span>
-                  <h3 className="font-black text-stone-900 text-base">Biometric Turnstile Punch</h3>
+                  <h3 className="font-black text-stone-900 text-base">Biometric / Face Turnstile Punch</h3>
                 </div>
                 <button onClick={() => setShowSimulatorModal(false)} className="text-stone-400 hover:text-stone-700 text-sm font-bold">
                   ✕
@@ -856,12 +1015,24 @@ export default function AttendancePage() {
                         <span className="font-mono text-stone-400 text-[10px]">{item.entityIdentifier}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleSimulateBiometricPunch(item.entityName, item.entityIdentifier, item.type)}
-                      className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs"
-                    >
-                      Punch Scan
-                    </button>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => handleSimulateBiometricPunch(item.entityName, item.entityIdentifier, item.type)}
+                        className="px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs"
+                      >
+                        🖐️ Finger
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleUpdateStatus(item.id, "PRESENT");
+                          showNotification("Face Verified", `AI Face Recognition unlocked turnstile for ${item.entityName}.`);
+                          setShowSimulatorModal(false);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs shadow-xs"
+                      >
+                        📸 Face
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

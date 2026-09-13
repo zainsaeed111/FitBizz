@@ -23,9 +23,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   AttendanceStatus? _statusFilter;
-  
-  // Geofence simulation distance
-  double _simulatedDistance = 25.0;
 
   @override
   void initState() {
@@ -797,11 +794,312 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
   Widget _buildHardwareConfigTab(AttendanceController ctrl) {
     final device = ctrl.deviceConfig;
 
+    final policy = ctrl.policySettings;
+    final allMembers = MembersController.instance.members;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ZKTeco / Hikvision TCP/IP Configuration
+          // 1. Master Attendance Modes & Policy Control (Gym Owner)
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.tune, color: AppColors.japaniPhalDark, size: 22),
+                        SizedBox(width: 8),
+                        Text('Gym Attendance Mode & Policy Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: AppColors.green600.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                      child: Text(policy.primaryMode.label, style: const TextStyle(color: AppColors.green600, fontSize: 10.5, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Select how attendance is handled in your gym facility (Manual, Biometric Machine, Face Recognition, or Hybrid).',
+                  style: TextStyle(fontSize: 11, color: AppColors.stone500),
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // 4 Mode Selection Radio Cards
+                const Text('Active Operating Mode:', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.stone700)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildModeCard(
+                      title: '🌟 Hybrid Mode (All Allowed)',
+                      subtitle: 'Manual + Biometrics + Face ID + 1-Tap App',
+                      selected: policy.primaryMode == AttendanceMode.hybridAll,
+                      onTap: () {
+                        setState(() {
+                          policy.primaryMode = AttendanceMode.hybridAll;
+                          ctrl.refresh();
+                        });
+                      },
+                    ),
+                    _buildModeCard(
+                      title: '🖐️ Biometric Machine Only',
+                      subtitle: 'Strict fingerprint turnstile & sensor punch',
+                      selected: policy.primaryMode == AttendanceMode.biometricOnly,
+                      onTap: () {
+                        setState(() {
+                          policy.primaryMode = AttendanceMode.biometricOnly;
+                          ctrl.refresh();
+                        });
+                      },
+                    ),
+                    _buildModeCard(
+                      title: '📸 Face Recognition Only',
+                      subtitle: 'AI facial scan camera & selfie recognition',
+                      selected: policy.primaryMode == AttendanceMode.faceOnly,
+                      onTap: () {
+                        setState(() {
+                          policy.primaryMode = AttendanceMode.faceOnly;
+                          ctrl.refresh();
+                        });
+                      },
+                    ),
+                    _buildModeCard(
+                      title: '📋 Manual & App 1-Tap Only',
+                      subtitle: 'Front desk marking + member app button',
+                      selected: policy.primaryMode == AttendanceMode.manualOnly,
+                      onTap: () {
+                        setState(() {
+                          policy.primaryMode = AttendanceMode.manualOnly;
+                          ctrl.refresh();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                const Divider(),
+
+                // Mode 1: Biometric Hardware Machine
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Biometric Hardware Machine (ZKTeco / Hikvision Socket)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: const Text('Direct TCP/IP socket sync with physical turnstiles & fingerprint terminals', style: TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                  value: policy.allowBiometricMachine,
+                  activeThumbColor: AppColors.green600,
+                  onChanged: (val) {
+                    setState(() {
+                      policy.allowBiometricMachine = val;
+                      ctrl.refresh();
+                    });
+                  },
+                ),
+                const Divider(),
+
+                // Mode 2: AI Face Recognition
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('AI Face Recognition (Camera & Mobile Selfie)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: const Text('Facial matching via turnstile cameras and member mobile app camera', style: TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                  value: policy.allowFaceRecognition,
+                  activeThumbColor: AppColors.green600,
+                  onChanged: (val) {
+                    setState(() {
+                      policy.allowFaceRecognition = val;
+                      ctrl.refresh();
+                    });
+                  },
+                ),
+                const Divider(),
+
+                // Mode 3: Member App 1-Tap Button
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Member App 1-Tap Check-In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: const Text('Members can punch in directly from their FitBizz mobile dashboard', style: TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                  value: policy.allowMemberApp1Tap,
+                  activeThumbColor: AppColors.green600,
+                  onChanged: (val) {
+                    setState(() {
+                      policy.allowMemberApp1Tap = val;
+                      ctrl.refresh();
+                    });
+                  },
+                ),
+                const Divider(),
+
+                // Mode 4: GPS Geofencing
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('GPS Geofence Perimeter Verification (≤ 100m)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: const Text('Restrict member app check-in to only when physically within gym coordinates', style: TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                  value: policy.allowGeofencing,
+                  activeThumbColor: AppColors.green600,
+                  onChanged: (val) {
+                    setState(() {
+                      policy.allowGeofencing = val;
+                      ctrl.refresh();
+                    });
+                  },
+                ),
+                const Divider(),
+
+                // Mode 5: Manual Admin Overrides
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Front Desk Manual Mark & Absences', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: const Text('Gym Owner & Receptionists can manually override, mark present/late/absent', style: TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                  value: policy.allowManualAdminMarking,
+                  activeThumbColor: AppColors.green600,
+                  onChanged: (val) {
+                    setState(() {
+                      policy.allowManualAdminMarking = val;
+                      ctrl.refresh();
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // 2. Member Biometric & Face ID Enrollment Directory
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.how_to_reg, color: AppColors.japaniPhalDark, size: 22),
+                        SizedBox(width: 8),
+                        Text('Member Biometric & Face ID Enrollment Hub', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.japaniPhalDark),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.smartphone, size: 15, color: AppColors.japaniPhalDark),
+                      label: const Text('Open Member App View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark)),
+                      onPressed: () => _showMemberSelfServiceModal(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Manage member fingerprint registrations and facial scan profiles for seamless check-in.',
+                  style: TextStyle(fontSize: 11, color: AppColors.stone500),
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // Members Enrollment Table
+                ...allMembers.take(5).map((m) {
+                  final profile = ctrl.getMemberBiometricProfile(m.id);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.stone50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.stone200),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(radius: 18, backgroundImage: NetworkImage(m.photoUrl)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(m.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                              Text('${m.memberNumber} • ${m.planName}', style: const TextStyle(fontSize: 10.5, color: AppColors.stone500)),
+                            ],
+                          ),
+                        ),
+
+                        // Fingerprint Badge / Button
+                        InkWell(
+                          onTap: () {
+                            ctrl.enrollMemberFingerprint(m.id);
+                            AppToast.showSuccess(context, 'Fingerprint Enrolled', 'Biometric fingerprint saved for ${m.fullName}.');
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: profile.isFingerprintEnrolled ? AppColors.green600.withValues(alpha: 0.12) : AppColors.stone200,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: profile.isFingerprintEnrolled ? AppColors.green600 : AppColors.stone400),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.fingerprint, size: 14, color: profile.isFingerprintEnrolled ? AppColors.green600 : AppColors.stone600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  profile.isFingerprintEnrolled ? 'Fingerprint: ✅' : 'Fingerprint: ⏳ Enroll',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: profile.isFingerprintEnrolled ? AppColors.green600 : AppColors.stone700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Face ID Badge / Button
+                        InkWell(
+                          onTap: () {
+                            ctrl.enrollMemberFace(m.id);
+                            AppToast.showSuccess(context, 'Face Scan Registered', 'AI Face ID profile saved for ${m.fullName}.');
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: profile.isFaceEnrolled ? AppColors.green600.withValues(alpha: 0.12) : AppColors.stone200,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: profile.isFaceEnrolled ? AppColors.green600 : AppColors.stone400),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.face, size: 14, color: profile.isFaceEnrolled ? AppColors.green600 : AppColors.stone600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  profile.isFaceEnrolled ? 'Face ID: ✅' : 'Face ID: 📸 Scan',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: profile.isFaceEnrolled ? AppColors.green600 : AppColors.stone700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // 3. ZKTeco / Hikvision TCP/IP Configuration
           AppCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -887,78 +1185,272 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Geofence Self Check-in Setup
-          AppCard(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.location_on, color: AppColors.green600, size: 22),
-                    SizedBox(width: 8),
-                    Text('Member Mobile App Geofence Radar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Members can mark self-attendance from their mobile app only when physically within gym perimeter (GPS Geofence).',
-                  style: TextStyle(fontSize: 11, color: AppColors.stone500),
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Allowed Gym Check-in Radius:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    Text('${_simulatedDistance.toInt()} meters (HQ Arena)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.green600)),
-                  ],
-                ),
-                Slider(
-                  value: _simulatedDistance,
-                  min: 10,
-                  max: 200,
-                  activeColor: AppColors.green600,
-                  onChanged: (val) => setState(() => _simulatedDistance = val),
-                ),
-                const SizedBox(height: 8),
-
-                // Simulated Geofence Check-in Button
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.green600,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.gps_fixed, size: 16),
-                      label: Text('Simulate Self Check-in (${_simulatedDistance.toInt()}m Range)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        final allMembers = MembersController.instance.members;
-                        if (allMembers.isNotEmpty) {
-                          final success = ctrl.geofenceSelfCheckIn(allMembers.first.id, _simulatedDistance);
-                          if (success) {
-                            AppToast.showSuccess(context, 'Geofence Check-in Verified', '${allMembers.first.fullName} checked in (${_simulatedDistance.toInt()}m from Gym).');
-                          } else {
-                            AppToast.showError(context, 'Out of Range', 'Cannot check in: Device is outside 100m gym radius.');
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  // --- 5. BIOMETRIC SIMULATOR MODAL ---
+  // --- 5. MEMBER MOBILE APP SELF-CHECKIN & HISTORY MODAL ---
+  void _showMemberSelfServiceModal(BuildContext context) {
+    final ctrl = AttendanceController.instance;
+    final allMembers = MembersController.instance.members;
+    if (allMembers.isEmpty) return;
+
+    var selectedMember = allMembers.first;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final policy = ctrl.policySettings;
+          final profile = ctrl.getMemberBiometricProfile(selectedMember.id);
+          final history = ctrl.getMemberHistory(selectedMember.id);
+          final streak = ctrl.getMemberStreak(selectedMember.id);
+          final monthlyCount = ctrl.getMemberMonthlyPresentCount(selectedMember.id);
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.smartphone, color: AppColors.japaniPhalDark, size: 22),
+                    SizedBox(width: 8),
+                    Text('Member App Check-In & History', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                DropdownButton<String>(
+                  value: selectedMember.id,
+                  underline: const SizedBox(),
+                  items: allMembers.map((m) {
+                    return DropdownMenuItem(
+                      value: m.id,
+                      child: Text(m.fullName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    );
+                  }).toList(),
+                  onChanged: (newId) {
+                    if (newId != null) {
+                      setModalState(() {
+                        selectedMember = allMembers.firstWhere((m) => m.id == newId);
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Member Header Card
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.japaniPhal, AppColors.japaniPhalDark]),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 24, backgroundImage: NetworkImage(selectedMember.photoUrl)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(selectedMember.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text('${selectedMember.memberNumber} • ${selectedMember.planName} • ${profile.isFingerprintEnrolled ? "🖐️ Enrolled" : "🖐️ Pending"} • ${profile.isFaceEnrolled ? "📸 Enrolled" : "📸 Pending"}', style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
+                                      child: Text('🔥 $streak Days Streak', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
+                                      child: Text('📅 $monthlyCount Days This Month', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Policy Restriction Alert (if applicable)
+                    if (!policy.isButtonAllowed)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.amber500.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.amber500),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 16, color: AppColors.amber500),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Gym Owner Policy: Direct 1-Tap button is restricted. Please use Biometric Fingerprint or Face Scan.',
+                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.stone800),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Quick Punch Action Buttons (3 Methods)
+                    const Text('Self Check-In Methods:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        // 1. 1-Tap App Check-In Button
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: policy.isButtonAllowed ? AppColors.green600 : AppColors.stone400,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.touch_app, size: 15),
+                            label: const Text('1-Tap Button', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            onPressed: policy.isButtonAllowed
+                                ? () {
+                                    final ok = ctrl.triggerMember1TapCheckIn(selectedMember.id);
+                                    if (ok) {
+                                      AppToast.showSuccess(context, 'Checked In', '${selectedMember.fullName} checked in successfully.');
+                                      setModalState(() {});
+                                    } else {
+                                      AppToast.showError(context, 'Disabled', '1-Tap Check-in is disabled by gym policy.');
+                                    }
+                                  }
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // 2. Fingerprint Sensor Punch
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: policy.isFingerprintAllowed ? AppColors.japaniPhalDark : AppColors.stone400,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.fingerprint, size: 15),
+                            label: const Text('Fingerprint', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            onPressed: policy.isFingerprintAllowed
+                                ? () {
+                                    final ok = ctrl.triggerMemberFingerprintPunch(selectedMember.id);
+                                    if (ok) {
+                                      AppToast.showSuccess(context, 'Fingerprint Verified', 'Biometric log saved for ${selectedMember.fullName}.');
+                                      setModalState(() {});
+                                    }
+                                  }
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // 3. Face Recognition Punch
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: policy.isFaceAllowed ? AppColors.stone900 : AppColors.stone400,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.face, size: 15),
+                            label: const Text('Face Scan', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                            onPressed: policy.isFaceAllowed
+                                ? () {
+                                    final ok = ctrl.triggerMemberFacePunch(selectedMember.id);
+                                    if (ok) {
+                                      AppToast.showSuccess(context, 'Face Match 99.2%', 'Access granted for ${selectedMember.fullName}.');
+                                      setModalState(() {});
+                                    }
+                                  }
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Attendance History List
+                    const Text('Past Attendance History & Logs:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+
+                    if (history.isEmpty)
+                      const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('No attendance records yet for this member.', style: TextStyle(color: AppColors.stone500, fontSize: 11))))
+                    else
+                      ...history.map((rec) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.stone50, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.stone200)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(rec.date, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                                  Text('In: ${rec.checkInTime ?? "--"} • Method: ${rec.methodLabel}', style: const TextStyle(fontSize: 10, color: AppColors.stone500)),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: rec.status == AttendanceStatus.present
+                                      ? AppColors.green600.withValues(alpha: 0.12)
+                                      : (rec.status == AttendanceStatus.late ? AppColors.amber500.withValues(alpha: 0.12) : AppColors.red600.withValues(alpha: 0.12)),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  rec.statusLabel,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: rec.status == AttendanceStatus.present
+                                        ? AppColors.green600
+                                        : (rec.status == AttendanceStatus.late ? AppColors.amber500 : AppColors.red600),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(child: const Text('Close'), onPressed: () => Navigator.pop(ctx)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // --- 6. BIOMETRIC SIMULATOR MODAL ---
   void _showBiometricSimulatorModal(BuildContext context) {
     final ctrl = AttendanceController.instance;
     final allMembers = MembersController.instance.members;
@@ -971,16 +1463,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
           children: [
             Icon(Icons.fingerprint, color: AppColors.japaniPhalDark, size: 24),
             SizedBox(width: 8),
-            Text('Simulate Biometric Turnstile Scan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            Text('Simulate Biometric / Face Hardware Punch', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
-          width: 420,
+          width: 440,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Select Member or Staff to simulate live hardware punch:', style: TextStyle(fontSize: 11, color: AppColors.stone600)),
+              const Text('Select Member to simulate live hardware punch:', style: TextStyle(fontSize: 11, color: AppColors.stone600)),
               const SizedBox(height: 12),
               ...allMembers.take(4).map((m) {
                 return Padding(
@@ -1004,24 +1496,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
                             ),
                           ],
                         ),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.japaniPhalDark,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                          icon: const Icon(Icons.touch_app, size: 14),
-                          label: const Text('Punch', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            ctrl.triggerBiometricCheckIn(
-                              entityId: m.id,
-                              type: AttendanceType.member,
-                              method: CheckInMethod.biometricFinger,
-                            );
-                            AppToast.showSuccess(context, 'Biometric Log Recorded', 'Turnstile access granted for ${m.fullName} (${m.memberNumber}).');
-                          },
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.japaniPhalDark,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              icon: const Icon(Icons.fingerprint, size: 13),
+                              label: const Text('Finger', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                ctrl.triggerBiometricCheckIn(
+                                  entityId: m.id,
+                                  type: AttendanceType.member,
+                                  method: CheckInMethod.biometricFinger,
+                                );
+                                AppToast.showSuccess(context, 'Fingerprint Verified', 'Turnstile access granted for ${m.fullName}.');
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.stone900,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              icon: const Icon(Icons.face, size: 13),
+                              label: const Text('Face', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                ctrl.triggerMemberFacePunch(m.id);
+                                AppToast.showSuccess(context, 'Face Match 99.4%', 'Facial turnstile unlocked for ${m.fullName}.');
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1037,6 +1549,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
             onPressed: () => Navigator.pop(ctx),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeCard({
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.japaniPhal.withValues(alpha: 0.12) : AppColors.stone50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: selected ? AppColors.japaniPhalDark : AppColors.stone300, width: selected ? 1.8 : 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, size: 16, color: selected ? AppColors.japaniPhalDark : AppColors.stone400),
+                const SizedBox(width: 6),
+                Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: selected ? AppColors.japaniPhalDark : AppColors.stone800), maxLines: 1)),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Padding(
+              padding: const EdgeInsets.only(left: 22),
+              child: Text(subtitle, style: const TextStyle(fontSize: 9.5, color: AppColors.stone500)),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -171,3 +171,65 @@ class StaffMemberModel {
     required this.monthlySalary,
   });
 }
+
+enum AttendanceMode {
+  hybridAll('Hybrid (All Methods Enabled)'),
+  biometricOnly('Biometric Fingerprint Machine Only'),
+  faceOnly('AI Face Recognition Only'),
+  manualOnly('Manual & 1-Tap App Button Only');
+
+  final String label;
+  const AttendanceMode(this.label);
+}
+
+/// Comprehensive Gym Owner Attendance Mode & Hardware Policy Settings
+class AttendancePolicySettings {
+  AttendanceMode primaryMode;
+  bool allowManualAdminMarking; // Gym Owner / Front Desk can mark members directly
+  bool allowMemberApp1Tap; // Member can mark from their mobile app button
+  bool allowBiometricMachine; // ZKTeco / Turnstile hardware integration
+  bool allowFaceRecognition; // AI Camera & Selfie Face Recognition
+  bool allowGeofencing; // Geofenced distance validation
+  double geofenceMaxRadiusMeters;
+  bool allowMemberSelfFaceEnrollment; // Member can self-enroll face from their mobile camera
+  bool allowMemberSelfFingerEnrollment; // Member can self-enroll fingerprint sensor
+  String gymLatitude;
+  String gymLongitude;
+
+  AttendancePolicySettings({
+    this.primaryMode = AttendanceMode.hybridAll,
+    this.allowManualAdminMarking = true,
+    this.allowMemberApp1Tap = true,
+    this.allowBiometricMachine = true,
+    this.allowFaceRecognition = true,
+    this.allowGeofencing = true,
+    this.geofenceMaxRadiusMeters = 100.0,
+    this.allowMemberSelfFaceEnrollment = true,
+    this.allowMemberSelfFingerEnrollment = true,
+    this.gymLatitude = '31.5204',
+    this.gymLongitude = '74.3587',
+  });
+
+  bool get isButtonAllowed => primaryMode == AttendanceMode.hybridAll || primaryMode == AttendanceMode.manualOnly;
+  bool get isFingerprintAllowed => primaryMode == AttendanceMode.hybridAll || primaryMode == AttendanceMode.biometricOnly;
+  bool get isFaceAllowed => primaryMode == AttendanceMode.hybridAll || primaryMode == AttendanceMode.faceOnly;
+}
+
+/// Member Biometric & Face Profile
+class MemberBiometricProfile {
+  final String memberId;
+  bool isFingerprintEnrolled;
+  String? fingerprintEnrolledDate;
+  bool isFaceEnrolled;
+  String? faceEnrolledDate;
+  String? facePhotoUrl;
+
+  MemberBiometricProfile({
+    required this.memberId,
+    this.isFingerprintEnrolled = false,
+    this.fingerprintEnrolledDate,
+    this.isFaceEnrolled = false,
+    this.faceEnrolledDate,
+    this.facePhotoUrl,
+  });
+}
