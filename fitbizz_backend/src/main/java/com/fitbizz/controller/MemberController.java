@@ -43,19 +43,19 @@ public class MemberController {
         String tenantId = TenantContext.getTenantId();
         String branchId = TenantContext.getBranchId();
 
-        if (member.getId() == null) {
-            member.setId(UUID.randomUUID().toString());
-        }
-        member.setTenantId(tenantId != null ? tenantId : "gym-101");
-        if (member.getBranchId() == null) {
-            member.setBranchId(branchId != null ? branchId : "branch-001");
+        // Unique Member ID
+        if (member.getId() == null || member.getId().isBlank()) {
+            member.setId("MEM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         }
 
-        // Auto-generate Roll Number if missing (Format: PULSE-2026-XXXX)
+        // Auto-generate Month-based Sequential Roll Number (Format: [PREFIX]-[YYYYMM]-[0001])
         if (member.getRollNumber() == null || member.getRollNumber().isBlank()) {
-            int seq = inMemoryMembers.size() + 1001;
-            String tenantPrefix = member.getTenantId().toUpperCase().replace("-", "");
-            member.setRollNumber(tenantPrefix + "-2026-" + seq);
+            String ym = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"));
+            int seq = inMemoryMembers.size() + 1;
+            String formattedSeq = String.format("%04d", seq);
+            String tenantPrefix = member.getTenantId().toUpperCase().replaceAll("[^A-Z0-9]", "");
+            if (tenantPrefix.isBlank()) tenantPrefix = "METRO";
+            member.setRollNumber(tenantPrefix + "-" + ym + "-" + formattedSeq);
         }
 
         if (member.getMemberNumber() == null || member.getMemberNumber().isBlank()) {

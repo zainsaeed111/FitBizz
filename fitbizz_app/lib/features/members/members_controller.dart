@@ -17,8 +17,8 @@ class MembersController extends ChangeNotifier {
     _members.clear();
     _members.addAll([
       MemberModel(
-        id: 'mem_1001',
-        memberNumber: 'PULSE-2026-1001',
+        id: 'MEM-A819C1',
+        memberNumber: 'METRO-202609-0001',
         fullName: 'Zain Malik',
         phone: '+92 300 1234567',
         cnic: '35202-1234567-1',
@@ -48,8 +48,8 @@ class MembersController extends ChangeNotifier {
         emergencyContactPhone: '+92 321 7654321',
       ),
       MemberModel(
-        id: 'mem_1002',
-        memberNumber: 'PULSE-2026-1002',
+        id: 'MEM-B920D2',
+        memberNumber: 'METRO-202609-0002',
         fullName: 'Ayesha Khan',
         phone: '+92 301 9876543',
         cnic: '35201-9876543-2',
@@ -78,8 +78,8 @@ class MembersController extends ChangeNotifier {
         emergencyContactPhone: '+92 300 5551234',
       ),
       MemberModel(
-        id: 'mem_1003',
-        memberNumber: 'PULSE-2026-1003',
+        id: 'MEM-C103E3',
+        memberNumber: 'METRO-202609-0003',
         fullName: 'Hamza Farooq',
         phone: '+92 302 4455667',
         cnic: '35202-4455667-3',
@@ -107,6 +107,19 @@ class MembersController extends ChangeNotifier {
         dietaryPreference: 'Standard Balanced',
       ),
     ]);
+  }
+
+  String generateNextRollNumber() {
+    final now = DateTime.now();
+    final yearMonth = '${now.year}${now.month.toString().padLeft(2, '0')}';
+    final seq = (_members.length + 1).toString().padLeft(4, '0');
+    return 'METRO-$yearMonth-$seq';
+  }
+
+  String generateNextMemberId() {
+    final now = DateTime.now();
+    final hex = now.millisecondsSinceEpoch.toRadixString(16).toUpperCase();
+    return 'MEM-$hex';
   }
 
   void addMember(MemberModel member) {

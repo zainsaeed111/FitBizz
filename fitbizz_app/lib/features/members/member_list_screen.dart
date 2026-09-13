@@ -93,7 +93,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
     final refController = TextEditingController();
 
     // Health & Diet Profile State
-    bool showHealthAccordion = false;
     String selectedAvatar = _presetAvatars[0];
     String selectedGender = 'Male';
     String selectedBloodGroup = 'O+';
@@ -113,6 +112,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isWide = screenWidth >= 880;
+
         return StatefulBuilder(
           builder: (context, setModalState) {
             final selectedPlan = plans.firstWhere(
@@ -123,6 +125,598 @@ class _MemberListScreenState extends State<MemberListScreen> {
             final double totalFee = selectedPlan.totalEnrollmentFee;
             final double tendered = double.tryParse(cashTenderedController.text) ?? totalFee;
             final double changeDue = tendered >= totalFee ? (tendered - totalFee) : 0.0;
+
+            // Widget for Left Column: Personal & Health Info
+            Widget buildPersonalAndHealthSection() {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Personal Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.japaniPhal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.badge_outlined, size: 16, color: AppColors.japaniPhalDark),
+                        SizedBox(width: 6),
+                        Text('1. Member Personal & Contact Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone900)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  AppTextField(
+                    label: 'Full Name *',
+                    hint: 'e.g. Usman Ali, Tauseef Ahmed',
+                    controller: nameController,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Phone / WhatsApp *',
+                          hint: '+92 300 1234567',
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'CNIC / National ID',
+                          hint: '35202-1234567-1',
+                          controller: cnicController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Themed DOB Calendar Picker
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Date of Birth (Themed Calendar):', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.stone700)),
+                      const SizedBox(height: 5),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await _pickThemedDate(context, selectedDob);
+                          if (picked != null) {
+                            setModalState(() => selectedDob = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.stone300),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_month, size: 17, color: AppColors.japaniPhalDark),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    DateFormat('yyyy-MM-dd').format(selectedDob),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.stone900),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.stone100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Age: ${DateTime.now().year - selectedDob.year} yrs',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.stone700, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Health & Fitness Section Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.stone100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.fitness_center, size: 16, color: AppColors.stone700),
+                        SizedBox(width: 6),
+                        Text('2. Health, Diet & Metrics (Optional Profile)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone900)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Avatar selector
+                  const Text('Member Avatar Photo:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.stone700)),
+                  const SizedBox(height: 5),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _presetAvatars.map((url) {
+                        final isPicked = url == selectedAvatar;
+                        return GestureDetector(
+                          onTap: () => setModalState(() => selectedAvatar = url),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isPicked ? AppColors.japaniPhalDark : Colors.transparent,
+                                width: 2.5,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundImage: NetworkImage(url),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Gender, Blood Group & Height
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedGender,
+                          decoration: InputDecoration(
+                            labelText: 'Gender',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: ['Male', 'Female', 'Other']
+                              .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 12))))
+                              .toList(),
+                          onChanged: (v) => setModalState(() => selectedGender = v ?? 'Male'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedBloodGroup,
+                          decoration: InputDecoration(
+                            labelText: 'Blood Group',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']
+                              .map((bg) => DropdownMenuItem(value: bg, child: Text('🩸 $bg', style: const TextStyle(fontSize: 12))))
+                              .toList(),
+                          onChanged: (v) => setModalState(() => selectedBloodGroup = v ?? 'O+'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Height',
+                          hint: '5\'10"',
+                          controller: heightController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Weight Metrics
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Current Weight (kg)',
+                          hint: '75.0',
+                          controller: weightController,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Target Weight (kg)',
+                          hint: '70.0',
+                          controller: targetWeightController,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Goal & Diet
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedGoal,
+                          decoration: InputDecoration(
+                            labelText: 'Fitness Goal',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: [
+                            'Muscle Building',
+                            'Fat Loss & Cardio',
+                            'Endurance & Agility',
+                            'General Fitness',
+                          ]
+                              .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 11.5))))
+                              .toList(),
+                          onChanged: (v) => setModalState(() => selectedGoal = v ?? 'General Fitness'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedDiet,
+                          decoration: InputDecoration(
+                            labelText: 'Diet Preference',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.stone300)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: [
+                            'High Protein (Balanced)',
+                            'Keto / Low Carb',
+                            'Standard Gym Diet',
+                            'Vegetarian / Vegan',
+                          ]
+                              .map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 11.5))))
+                              .toList(),
+                          onChanged: (v) => setModalState(() => selectedDiet = v ?? 'High Protein (Balanced)'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Emergency Contact
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Emergency Contact Name',
+                          hint: 'e.g. Brother / Father',
+                          controller: emergencyNameController,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Emergency Phone',
+                          hint: '+92 300 0000000',
+                          controller: emergencyPhoneController,
+                          keyboardType: TextInputType.phone,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            // Widget for Right Column: Package Selection & POS Payment Settlement
+            Widget buildPlanAndPosSection() {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Plan Selection Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.japaniPhal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.workspace_premium, size: 16, color: AppColors.japaniPhalDark),
+                        SizedBox(width: 6),
+                        Text('3. Select Membership Package', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone900)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Plans Choice Grid/Chips
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: plans.map((plan) {
+                      final isSelected = plan.id == selectedPlanId;
+                      return InkWell(
+                        onTap: () => setModalState(() => selectedPlanId = plan.id),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.japaniPhalDark : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected ? AppColors.japaniPhalDark : AppColors.stone300,
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.japaniPhalDark.withValues(alpha: 0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                                size: 14,
+                                color: isSelected ? Colors.white : AppColors.stone500,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${plan.name} (${formatMoney(plan.monthlyFee)}/mo)',
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : AppColors.stone800,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Selected Plan Summary Box
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.stone50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.stone200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              selectedPlan.name,
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.stone900),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.japaniPhal.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                selectedPlan.badge,
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text('• Duration: ${selectedPlan.durationLabel}', style: const TextStyle(fontSize: 11, color: AppColors.stone600)),
+                        Text('• Admission Fee: ${formatMoney(selectedPlan.admissionFee)} + Monthly Fee: ${formatMoney(selectedPlan.monthlyFee * selectedPlan.durationMonths)}', style: const TextStyle(fontSize: 11, color: AppColors.stone600)),
+                        if (selectedPlan.hasTrainerSupport)
+                          Text('• 🏋️ Trainer: ${selectedPlan.trainerSupportNote ?? "Trainer Guidance Included"}', style: const TextStyle(fontSize: 11, color: AppColors.green600, fontWeight: FontWeight.bold))
+                        else
+                          const Text('• Self-Workout (No Personal Trainer)', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
+                        const Divider(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total Upfront Fee Payable:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.stone700)),
+                            Text(formatMoney(totalFee), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.japaniPhalDark)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // POS Settlement Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.stone100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.point_of_sale, size: 16, color: AppColors.stone700),
+                        SizedBox(width: 6),
+                        Text('4. Point of Sale (POS) Fee Settlement', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone900)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Payment mode selector
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('💵 Cash Payment (POS)'),
+                        selected: paymentMode == 'CASH',
+                        selectedColor: AppColors.green600,
+                        labelStyle: TextStyle(color: paymentMode == 'CASH' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
+                        onSelected: (_) => setModalState(() => paymentMode = 'CASH'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('💳 Online Bank / Raast'),
+                        selected: paymentMode == 'ONLINE',
+                        selectedColor: AppColors.japaniPhalDark,
+                        labelStyle: TextStyle(color: paymentMode == 'ONLINE' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
+                        onSelected: (_) => setModalState(() => paymentMode = 'ONLINE'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('📱 JazzCash / EasyPaisa / POS'),
+                        selected: paymentMode == 'WALLET',
+                        selectedColor: AppColors.stone900,
+                        labelStyle: TextStyle(color: paymentMode == 'WALLET' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
+                        onSelected: (_) => setModalState(() => paymentMode = 'WALLET'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // POS Mode Specific Form
+                  if (paymentMode == 'CASH') ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.green600.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.green600.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppTextField(
+                                  label: 'Cash Tendered / Received (${AppLocaleController.instance.currency})',
+                                  hint: totalFee.toInt().toString(),
+                                  controller: cashTenderedController,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (_) => setModalState(() {}),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.green600.withValues(alpha: 0.4)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Change to Return:', style: TextStyle(fontSize: 10, color: AppColors.stone500, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      formatMoney(changeDue),
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.green600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Fast Cash Suggestions
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              ActionChip(
+                                label: Text('Exact: ${formatMoney(totalFee)}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  cashTenderedController.text = totalFee.toInt().toString();
+                                  setModalState(() {});
+                                },
+                              ),
+                              ActionChip(
+                                label: Text('₨ ${(totalFee + 500).toInt()}', style: const TextStyle(fontSize: 10.5)),
+                                onPressed: () {
+                                  cashTenderedController.text = (totalFee + 500).toInt().toString();
+                                  setModalState(() {});
+                                },
+                              ),
+                              ActionChip(
+                                label: const Text('₨ 5,000', style: TextStyle(fontSize: 10.5)),
+                                onPressed: () {
+                                  cashTenderedController.text = '5000';
+                                  setModalState(() {});
+                                },
+                              ),
+                              ActionChip(
+                                label: const Text('₨ 10,000', style: TextStyle(fontSize: 10.5)),
+                                onPressed: () {
+                                  cashTenderedController.text = '10000';
+                                  setModalState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (paymentMode == 'ONLINE') ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: AppTextField(
+                            label: 'Bank / Channel Name',
+                            hint: 'e.g. Meezan Bank, HBL Raast',
+                            controller: bankNameController,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          flex: 3,
+                          child: AppTextField(
+                            label: 'Transaction / Receipt Ref ID',
+                            hint: 'TRX-9823471',
+                            controller: refController,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    AppTextField(
+                      label: 'Wallet Mobile # or POS Terminal Auth Code',
+                      hint: '03001234567 / AUTH-4912',
+                      controller: refController,
+                    ),
+                  ],
+                ],
+              );
+            }
 
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -142,537 +736,34 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Admit New Member & Issue Pass', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-                      Text('Configure plan, POS fee collection, and health metrics', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
+                      Text('Configure plan, POS fee collection, and health metrics in real-time', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
                     ],
                   ),
                 ],
               ),
               content: SizedBox(
-                width: 620,
+                width: isWide ? 900 : 540,
                 child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Section 1: Member Identity
-                      Text('1. Member Personal & Contact Details', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 8),
-
-                      AppTextField(
-                        label: 'Full Name *',
-                        hint: 'e.g. Usman Ali, Tauseef Ahmed',
-                        controller: nameController,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: AppTextField(
-                              label: 'Phone / WhatsApp *',
-                              hint: '+92 300 1234567',
-                              controller: phoneController,
-                              keyboardType: TextInputType.phone,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            flex: 3,
-                            child: AppTextField(
-                              label: 'CNIC / National ID',
-                              hint: '35202-1234567-1',
-                              controller: cnicController,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Interactive Themed Date of Birth Picker
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Date of Birth (Themed Calendar):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.stone700)),
-                                const SizedBox(height: 6),
-                                InkWell(
-                                  onTap: () async {
-                                    final picked = await _pickThemedDate(context, selectedDob);
-                                    if (picked != null) {
-                                      setModalState(() => selectedDob = picked);
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: AppColors.stone300),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.calendar_month, size: 18, color: AppColors.japaniPhalDark),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              DateFormat('yyyy-MM-dd').format(selectedDob),
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.stone900),
-                                            ),
-                                          ],
-                                        ),
-                                        Text(
-                                          'Age: ${DateTime.now().year - selectedDob.year} yrs',
-                                          style: const TextStyle(fontSize: 11, color: AppColors.stone500, fontWeight: FontWeight.w600),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Section 2: Membership Plan Selection
-                      Text('2. Choose Membership Package:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: plans.map((plan) {
-                          final isSelected = plan.id == selectedPlanId;
-                          return ChoiceChip(
-                            label: Text('${plan.name} (${formatMoney(plan.monthlyFee)}/mo)'),
-                            selected: isSelected,
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.stone800,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                              fontSize: 11.5,
-                            ),
-                            onSelected: (_) => setModalState(() => selectedPlanId = plan.id),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Plan Highlights & Total Breakdown Box
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.stone50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.stone200),
-                        ),
-                        child: Column(
+                  child: isWide
+                      ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  selectedPlan.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.stone900),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.japaniPhal.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    selectedPlan.badge,
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text('• Duration: ${selectedPlan.durationLabel}', style: const TextStyle(fontSize: 11, color: AppColors.stone600)),
-                            Text('• Admission Fee: ${formatMoney(selectedPlan.admissionFee)} + Monthly Rate: ${formatMoney(selectedPlan.monthlyFee * selectedPlan.durationMonths)}', style: const TextStyle(fontSize: 11, color: AppColors.stone600)),
-                            if (selectedPlan.hasTrainerSupport)
-                              Text('• 🏋️ Trainer: ${selectedPlan.trainerSupportNote ?? "Trainer Guidance Included"}', style: const TextStyle(fontSize: 11, color: AppColors.green600, fontWeight: FontWeight.bold))
-                            else
-                              const Text('• Self-Workout (No Personal Trainer)', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
-                            if (selectedPlan.hasMealPlan)
-                              const Text('• 🥗 Customized Diet & Meal Plan Included', style: TextStyle(fontSize: 11, color: AppColors.green600, fontWeight: FontWeight.bold)),
-                            if (selectedPlan.isMultiBranch)
-                              const Text('• 🌐 All-Branch Access Included', style: TextStyle(fontSize: 11, color: AppColors.japaniPhalDark, fontWeight: FontWeight.bold)),
-                            const Divider(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Total Upfront Fee Payable:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.stone700)),
-                                Text(formatMoney(totalFee), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.japaniPhalDark)),
-                              ],
-                            ),
+                            Expanded(child: buildPersonalAndHealthSection()),
+                            const SizedBox(width: 24),
+                            Expanded(child: buildPlanAndPosSection()),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Section 3: Embedded POS / Payment Collection System
-                      Text('3. Point of Sale (POS) Fee Settlement:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('💵 Cash Payment (POS)'),
-                            selected: paymentMode == 'CASH',
-                            selectedColor: AppColors.green600,
-                            labelStyle: TextStyle(color: paymentMode == 'CASH' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
-                            onSelected: (_) => setModalState(() => paymentMode = 'CASH'),
-                          ),
-                          ChoiceChip(
-                            label: const Text('💳 Online Bank / Raast'),
-                            selected: paymentMode == 'ONLINE',
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: paymentMode == 'ONLINE' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
-                            onSelected: (_) => setModalState(() => paymentMode = 'ONLINE'),
-                          ),
-                          ChoiceChip(
-                            label: const Text('📱 JazzCash / EasyPaisa / POS'),
-                            selected: paymentMode == 'WALLET',
-                            selectedColor: AppColors.stone900,
-                            labelStyle: TextStyle(color: paymentMode == 'WALLET' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11.5),
-                            onSelected: (_) => setModalState(() => paymentMode = 'WALLET'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // POS Mode Specific Form
-                      if (paymentMode == 'CASH') ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.green600.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.green600.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AppTextField(
-                                      label: 'Cash Tendered / Received (${AppLocaleController.instance.currency})',
-                                      hint: totalFee.toInt().toString(),
-                                      controller: cashTenderedController,
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setModalState(() {}),
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: AppColors.green600.withValues(alpha: 0.4)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Change to Return:', style: TextStyle(fontSize: 10, color: AppColors.stone500, fontWeight: FontWeight.bold)),
-                                        Text(
-                                          formatMoney(changeDue),
-                                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.green600),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              // Fast Cash Suggestions
-                              Wrap(
-                                spacing: 6,
-                                children: [
-                                  ActionChip(
-                                    label: Text('Exact: ${formatMoney(totalFee)}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                                    onPressed: () {
-                                      cashTenderedController.text = totalFee.toInt().toString();
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  ActionChip(
-                                    label: Text('₨ ${(totalFee + 500).toInt()}', style: const TextStyle(fontSize: 10.5)),
-                                    onPressed: () {
-                                      cashTenderedController.text = (totalFee + 500).toInt().toString();
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  ActionChip(
-                                    label: const Text('₨ 5,000', style: TextStyle(fontSize: 10.5)),
-                                    onPressed: () {
-                                      cashTenderedController.text = '5000';
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  ActionChip(
-                                    label: const Text('₨ 10,000', style: TextStyle(fontSize: 10.5)),
-                                    onPressed: () {
-                                      cashTenderedController.text = '10000';
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else if (paymentMode == 'ONLINE') ...[
-                        Row(
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 2,
-                              child: AppTextField(
-                                label: 'Bank / Channel Name',
-                                hint: 'e.g. Meezan Bank, HBL Raast',
-                                controller: bankNameController,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              flex: 3,
-                              child: AppTextField(
-                                label: 'Transaction / Receipt Ref ID',
-                                hint: 'TRX-9823471',
-                                controller: refController,
-                              ),
-                            ),
+                            buildPersonalAndHealthSection(),
+                            const SizedBox(height: AppSpacing.md),
+                            const Divider(),
+                            const SizedBox(height: AppSpacing.md),
+                            buildPlanAndPosSection(),
                           ],
                         ),
-                      ] else ...[
-                        AppTextField(
-                          label: 'Wallet Mobile # or POS Terminal Auth Code',
-                          hint: '03001234567 / AUTH-4912',
-                          controller: refController,
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Section 4: Collapsible Health, Diet & Fitness Profile
-                      InkWell(
-                        onTap: () => setModalState(() => showHealthAccordion = !showHealthAccordion),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: showHealthAccordion ? AppColors.japaniPhal.withValues(alpha: 0.08) : AppColors.stone100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: showHealthAccordion ? AppColors.japaniPhal : AppColors.stone300),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.fitness_center,
-                                    size: 18,
-                                    color: showHealthAccordion ? AppColors.japaniPhalDark : AppColors.stone600,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '4. Health, Diet & Workout Profile (Optional Details)',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12.5,
-                                      color: showHealthAccordion ? AppColors.japaniPhalDark : AppColors.stone800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Icon(
-                                showHealthAccordion ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                                color: AppColors.stone600,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      if (showHealthAccordion) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        // Avatar Photo Selector
-                        const Text('Choose Member Avatar Photo:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.stone700)),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: _presetAvatars.map((url) {
-                            final isPicked = url == selectedAvatar;
-                            return GestureDetector(
-                              onTap: () => setModalState(() => selectedAvatar = url),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isPicked ? AppColors.japaniPhalDark : Colors.transparent,
-                                    width: 2.5,
-                                  ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: NetworkImage(url),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-
-                        // Gender, Blood Group & Height
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedGender,
-                                decoration: const InputDecoration(
-                                  labelText: 'Gender',
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                ),
-                                items: ['Male', 'Female', 'Other']
-                                    .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 12))))
-                                    .toList(),
-                                onChanged: (v) => setModalState(() => selectedGender = v ?? 'Male'),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedBloodGroup,
-                                decoration: const InputDecoration(
-                                  labelText: 'Blood Group',
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                ),
-                                items: ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']
-                                    .map((bg) => DropdownMenuItem(value: bg, child: Text('🩸 $bg', style: const TextStyle(fontSize: 12))))
-                                    .toList(),
-                                onChanged: (v) => setModalState(() => selectedBloodGroup = v ?? 'O+'),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: AppTextField(
-                                label: 'Height',
-                                hint: '5\'10"',
-                                controller: heightController,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-
-                        // Weight Logs
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                label: 'Current Weight (kg)',
-                                hint: '75.0',
-                                controller: weightController,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: AppTextField(
-                                label: 'Target Goal Weight (kg)',
-                                hint: '70.0',
-                                controller: targetWeightController,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-
-                        // Fitness Goal & Diet Preference
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedGoal,
-                                decoration: const InputDecoration(
-                                  labelText: 'Fitness Goal',
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                ),
-                                items: [
-                                  'Muscle Building',
-                                  'Fat Loss & Cardio',
-                                  'Endurance & Agility',
-                                  'General Fitness',
-                                ]
-                                    .map((g) => DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 12))))
-                                    .toList(),
-                                onChanged: (v) => setModalState(() => selectedGoal = v ?? 'General Fitness'),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedDiet,
-                                decoration: const InputDecoration(
-                                  labelText: 'Dietary Preference',
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                ),
-                                items: [
-                                  'High Protein (Balanced)',
-                                  'Keto / Low Carb',
-                                  'Standard Gym Diet',
-                                  'Vegetarian / Vegan',
-                                ]
-                                    .map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 12))))
-                                    .toList(),
-                                onChanged: (v) => setModalState(() => selectedDiet = v ?? 'High Protein (Balanced)'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-
-                        // Emergency Contact
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                label: 'Emergency Contact Name',
-                                hint: 'e.g. Brother / Father',
-                                controller: emergencyNameController,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: AppTextField(
-                                label: 'Emergency Phone',
-                                hint: '+92 300 0000000',
-                                controller: emergencyPhoneController,
-                                keyboardType: TextInputType.phone,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
                 ),
               ),
               actions: [
@@ -694,8 +785,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
                       return;
                     }
 
-                    final seq = 1001 + MembersController.instance.members.length;
-                    final rollNum = 'PULSE-2026-$seq';
+                    // Month-based sequential roll number: METRO-YYYYMM-0001
+                    final rollNum = MembersController.instance.generateNextRollNumber();
+                    final memberId = MembersController.instance.generateNextMemberId();
 
                     final now = DateTime.now();
                     final expiryDate = DateTime(now.year, now.month + selectedPlan.durationMonths, now.day);
@@ -704,7 +796,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     final dobStr = DateFormat('yyyy-MM-dd').format(selectedDob);
 
                     final newMember = MemberModel(
-                      id: 'mem_${DateTime.now().millisecondsSinceEpoch}',
+                      id: memberId,
                       memberNumber: rollNum,
                       fullName: nameController.text.trim(),
                       phone: phoneController.text.trim(),
