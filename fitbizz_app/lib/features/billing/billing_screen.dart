@@ -602,238 +602,369 @@ Thank you for training with us!''';
     );
   }
 
-  // --- PROFESSIONAL TAX INVOICE & RECEIPT DIALOG (PDF & PRINT & WHATSAPP) ---
+  // --- AUTHENTIC COMPACT POS THERMAL RECEIPT DIALOG (80MM ROLL & WHATSAPP) ---
   void _showReceiptDialog(InvoiceRecord invoice) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        contentPadding: const EdgeInsets.all(20),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.verified, color: AppColors.green600, size: 22),
-                SizedBox(width: 8),
-                Text('Official Payment Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              onPressed: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         content: SizedBox(
-          width: 480,
+          width: 350,
           child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.stone300),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Gym Brand Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('METRO FITNESS CLUB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.japaniPhalDark)),
-                          const Text('HQ Arena • Tax/NTN: 8932014-7', style: TextStyle(fontSize: 10, color: AppColors.stone500)),
-                          const Text('Helpline: +92 300 0000000', style: TextStyle(fontSize: 10, color: AppColors.stone600)),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.green600.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.green600),
-                        ),
-                        child: Text(
-                          invoice.status,
-                          style: const TextStyle(color: AppColors.green600, fontWeight: FontWeight.bold, fontSize: 11),
-                        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Thermal Paper Container with serrated edges look
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCFCFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.stone300, width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.18),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  const Divider(height: 20),
-
-                  // Receipt Meta
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('BILLED TO:', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.stone400)),
-                          Text(invoice.memberName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.stone900)),
-                          Text('${invoice.memberRoll} • ${invoice.memberPhone}', style: const TextStyle(fontSize: 10, color: AppColors.stone600)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('RECEIPT #:', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.stone400)),
-                          Text(invoice.id, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.japaniPhalDark)),
-                          Text('Date: ${invoice.date}', style: const TextStyle(fontSize: 10, color: AppColors.stone600)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-
-                  // Itemized Table
-                  Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(4),
-                      1: FlexColumnWidth(1),
-                      2: FlexColumnWidth(2),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: BoxDecoration(color: AppColors.stone100, borderRadius: BorderRadius.circular(4)),
-                        children: const [
-                          Padding(padding: EdgeInsets.all(6), child: Text('DESCRIPTION', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.stone700))),
-                          Padding(padding: EdgeInsets.all(6), child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.stone700))),
-                          Padding(padding: EdgeInsets.all(6), child: Text('AMOUNT', textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.stone700))),
-                        ],
-                      ),
-                      ...invoice.items.map((item) {
-                        return TableRow(
+                      // Gym Header
+                      Center(
+                        child: Column(
                           children: [
-                            Padding(padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4), child: Text(item.name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
-                            Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Text(item.quantity.toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
-                            Padding(padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4), child: Text(formatMoney(item.total), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.japaniPhalDark.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.fitness_center, size: 24, color: AppColors.japaniPhalDark),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'METRO FITNESS CLUB',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, color: AppColors.stone900),
+                            ),
+                            const Text(
+                              'HQ Arena • Main Blvd, Gulberg III',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: AppColors.stone600),
+                            ),
+                            const Text(
+                              'NTN: 8932014-7 • Ph: +92 300 0000000',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: AppColors.stone500),
+                            ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDashedLine(),
+                      const SizedBox(height: 8),
+
+                      // POS Terminal Metadata
+                      _buildMonoRow('RCPT NO  :', invoice.id, isBold: true),
+                      _buildMonoRow('DATE/TIME:', '${invoice.date} 10:30 PM'),
+                      _buildMonoRow('TERMINAL :', 'POS Counter #01 (Front Desk)'),
+                      _buildMonoRow('CASHIER  :', 'Reception Desk Staff'),
+                      const SizedBox(height: 8),
+                      _buildDashedLine(),
+                      const SizedBox(height: 8),
+
+                      // Member & Membership Details Section
+                      const Text(
+                        '--- MEMBER & PLAN DETAILS ---',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.stone600),
+                      ),
+                      const SizedBox(height: 4),
+                      _buildMonoRow('NAME     :', invoice.memberName, isBold: true),
+                      _buildMonoRow('ROLL NO  :', invoice.memberRoll, isBold: true),
+                      _buildMonoRow('PHONE    :', invoice.memberPhone),
+                      _buildMonoRow('PLAN/ITEM:', invoice.items.isNotEmpty ? invoice.items.first.name : 'Gym Membership'),
+                      const SizedBox(height: 8),
+                      _buildDashedLine(),
+                      const SizedBox(height: 8),
+
+                      // Itemized Header
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('ITEM DESCRIPTION', style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.w900, color: AppColors.stone800)),
+                          Text('QTY  AMOUNT', style: TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.w900, color: AppColors.stone800)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      _buildDashedLine(),
+                      const SizedBox(height: 6),
+
+                      // Items List
+                      ...invoice.items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.5),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  style: const TextStyle(fontFamily: 'monospace', fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.stone900),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${item.quantity}  ${formatMoney(item.total)}',
+                                style: const TextStyle(fontFamily: 'monospace', fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.stone900),
+                              ),
+                            ],
+                          ),
                         );
                       }),
-                    ],
-                  ),
-                  const Divider(height: 20),
 
-                  // Financial Breakdown
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 6),
+                      _buildDashedLine(),
+                      const SizedBox(height: 6),
+
+                      // Financial Calculations
+                      _buildMonoRow('SUBTOTAL   :', formatMoney(invoice.subtotal)),
+                      if (invoice.discount > 0)
+                        _buildMonoRow('DISCOUNT   :', '- ${formatMoney(invoice.discount)}', valueColor: AppColors.red600),
+                      const SizedBox(height: 4),
+                      const Divider(thickness: 1.5, color: AppColors.stone900),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Payment Mode: ${invoice.paymentMode}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.stone700)),
-                          if (invoice.paymentRef != null)
-                            Text('TRX Ref: ${invoice.paymentRef}', style: const TextStyle(fontSize: 10, color: AppColors.stone500)),
-                          if (invoice.cashTendered != null)
-                            Text('Tendered: ${formatMoney(invoice.cashTendered!)} | Change: ${formatMoney(invoice.changeReturned ?? 0)}', style: const TextStyle(fontSize: 10, color: AppColors.green600, fontWeight: FontWeight.bold)),
+                          const Text('NET PAID:', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.stone900)),
+                          Text(formatMoney(invoice.grandTotal), style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.japaniPhalDark)),
                         ],
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (invoice.discount > 0)
-                            Text('Discount: -${formatMoney(invoice.discount)}', style: const TextStyle(fontSize: 10, color: AppColors.red600)),
-                          Text(
-                            'Grand Total: ${formatMoney(invoice.grandTotal)}',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.japaniPhalDark),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                      const Divider(thickness: 1.5, color: AppColors.stone900),
+                      const SizedBox(height: 4),
 
-                  // QR Verification & Footer
-                  Row(
-                    children: [
-                      QrImageView(
-                        data: 'RECEIPT:${invoice.id}:${invoice.grandTotal}:${invoice.memberRoll}',
-                        version: QrVersions.auto,
-                        size: 55,
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          'Computer-generated receipt valid for Metro Fitness Club access. Retain for tax & refund claims.',
-                          style: TextStyle(fontSize: 9, color: AppColors.stone400),
+                      // Tender Details
+                      _buildMonoRow('PAY MODE   :', invoice.paymentMode, isBold: true),
+                      if (invoice.paymentRef != null)
+                        _buildMonoRow('TRX REF    :', invoice.paymentRef!),
+                      if (invoice.cashTendered != null) ...[
+                        _buildMonoRow('CASH TENDER:', formatMoney(invoice.cashTendered!)),
+                        _buildMonoRow('CHANGE DUE :', formatMoney(invoice.changeReturned ?? 0), isBold: true, valueColor: AppColors.green600),
+                      ],
+
+                      const SizedBox(height: 12),
+
+                      // QR Code Verification
+                      Center(
+                        child: Column(
+                          children: [
+                            QrImageView(
+                              data: 'RECEIPT:${invoice.id}:${invoice.grandTotal}:${invoice.memberRoll}',
+                              version: QrVersions.auto,
+                              size: 70,
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              '*** THANK YOU FOR TRAINING WITH US ***',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.stone700),
+                            ),
+                            const Text(
+                              'Computer-generated POS Tax Receipt\nNo signature required • Non-refundable',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 8, color: AppColors.stone500),
+                            ),
+                            const SizedBox(height: 6),
+                            _buildDashedLine(),
+                            const SizedBox(height: 6),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.bolt, size: 12, color: AppColors.japaniPhalDark),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Powered by FitBizz Cloud Gym POS',
+                                  style: TextStyle(fontFamily: 'monospace', fontSize: 8.5, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+
+                // Action Buttons Bar
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.green600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.share, size: 16),
+                        label: const Text('WhatsApp', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          final text = '''🧾 *METRO FITNESS CLUB - POS THERMAL RECEIPT*
+━━━━━━━━━━━━━━━━━━━━
+🏢 *Gym:* Metro Fitness Club (HQ Arena)
+📄 *Receipt #:* ${invoice.id}
+📅 *Date:* ${invoice.date}
+👤 *Member:* ${invoice.memberName} (${invoice.memberRoll})
+📱 *Phone:* ${invoice.memberPhone}
+━━━━━━━━━━━━━━━━━━━━
+*ITEMIZED CHARGES:*
+${invoice.items.map((it) => '• ${it.name} (x${it.quantity}): ${formatMoney(it.total)}').join('\n')}
+━━━━━━━━━━━━━━━━━━━━
+Subtotal: ${formatMoney(invoice.subtotal)}
+Discount: -${formatMoney(invoice.discount)}
+*TOTAL PAID:* ${formatMoney(invoice.grandTotal)}
+Payment Mode: ${invoice.paymentMode} ${invoice.paymentRef != null ? '(${invoice.paymentRef})' : ''}
+━━━━━━━━━━━━━━━━━━━━
+⚡ _Powered by FitBizz Cloud Gym POS_''';
+                          final cleanPhone = invoice.memberPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                          launchUrl(Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}'), mode: LaunchMode.externalApplication);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.stone900,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.print, size: 16),
+                        label: const Text('Print 80mm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          final doc = pw.Document();
+                          doc.addPage(
+                            pw.Page(
+                              pageFormat: PdfPageFormat.roll80,
+                              margin: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                              build: (pw.Context context) {
+                                return pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                                  children: [
+                                    pw.Center(
+                                      child: pw.Text('METRO FITNESS CLUB', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                                    ),
+                                    pw.Center(
+                                      child: pw.Text('HQ Arena • Gulberg III • NTN: 8932014-7', style: const pw.TextStyle(fontSize: 8)),
+                                    ),
+                                    pw.Center(
+                                      child: pw.Text('Helpline: +92 300 0000000', style: const pw.TextStyle(fontSize: 8)),
+                                    ),
+                                    pw.Divider(thickness: 0.5),
+                                    pw.Text('RCPT #: ${invoice.id}', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                                    pw.Text('DATE  : ${invoice.date}', style: const pw.TextStyle(fontSize: 8)),
+                                    pw.Text('MEMBER: ${invoice.memberName}', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                                    pw.Text('ROLL #: ${invoice.memberRoll}', style: const pw.TextStyle(fontSize: 8)),
+                                    pw.Divider(thickness: 0.5),
+                                    ...invoice.items.map((it) => pw.Row(
+                                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            pw.Expanded(child: pw.Text('${it.name} x${it.quantity}', style: const pw.TextStyle(fontSize: 8))),
+                                            pw.Text('Rs ${it.total.toInt()}', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                                          ],
+                                        )),
+                                    pw.Divider(thickness: 0.5),
+                                    pw.Row(
+                                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        pw.Text('TOTAL PAID (${invoice.paymentMode}):', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                                        pw.Text('Rs ${invoice.grandTotal.toInt()}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                                      ],
+                                    ),
+                                    pw.SizedBox(height: 8),
+                                    pw.Center(
+                                      child: pw.Text('*** THANK YOU ***', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                                    ),
+                                    pw.Center(
+                                      child: pw.Text('Powered by FitBizz Cloud POS', style: const pw.TextStyle(fontSize: 7)),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          );
+                          await Printing.layoutPdf(onLayout: (format) async => doc.save());
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      style: IconButton.styleFrom(backgroundColor: AppColors.stone800),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.share, size: 16, color: AppColors.green600),
-            label: const Text('WhatsApp Receipt', style: TextStyle(color: AppColors.green600, fontWeight: FontWeight.bold)),
-            onPressed: () {
-              final text = '''🧾 *PAYMENT RECEIPT - METRO FITNESS CLUB*
-━━━━━━━━━━━━━━━━━━━━
-📄 *Invoice #:* ${invoice.id}
-👤 *Member Name:* ${invoice.memberName} (${invoice.memberRoll})
-📅 *Date:* ${invoice.date}
-💵 *Amount Paid:* ${formatMoney(invoice.grandTotal)}
-💳 *Payment Mode:* ${invoice.paymentMode}
-━━━━━━━━━━━━━━━━━━━━
-Thank you for your payment! Keep this receipt for entry verification.''';
-              final cleanPhone = invoice.memberPhone.replaceAll(RegExp(r'[^0-9]'), '');
-              launchUrl(Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}'), mode: LaunchMode.externalApplication);
-            },
+      ),
+    );
+  }
+
+  Widget _buildDashedLine() {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final boxWidth = constraints.constrainWidth();
+        const dashWidth = 4.0;
+        const dashHeight = 1.0;
+        final dashCount = (boxWidth / (2 * dashWidth)).floor();
+        return Flex(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          direction: Axis.horizontal,
+          children: List.generate(dashCount, (_) {
+            return const SizedBox(
+              width: dashWidth,
+              height: dashHeight,
+              child: DecoratedBox(decoration: BoxDecoration(color: AppColors.stone400)),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildMonoRow(String label, String value, {bool isBold = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AppColors.stone600),
           ),
-          AppButton(
-            label: 'Print / Save PDF',
-            icon: Icons.print,
-            onPressed: () async {
-              final doc = pw.Document();
-              doc.addPage(
-                pw.Page(
-                  pageFormat: PdfPageFormat.a4,
-                  margin: const pw.EdgeInsets.all(32),
-                  build: (pw.Context context) {
-                    return pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('METRO FITNESS CLUB - OFFICIAL RECEIPT', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
-                        pw.Text('Receipt #: ${invoice.id}  •  Date: ${invoice.date}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                        pw.Divider(thickness: 1.5, color: PdfColors.orange300),
-                        pw.SizedBox(height: 12),
-                        pw.Text('Member: ${invoice.memberName} (${invoice.memberRoll})', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('Phone: ${invoice.memberPhone}', style: const pw.TextStyle(fontSize: 10)),
-                        pw.SizedBox(height: 16),
-                        ...invoice.items.map((it) => pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                              children: [
-                                pw.Text('${it.name} (x${it.quantity})'),
-                                pw.Text('Rs ${it.total.toStringAsFixed(0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                              ],
-                            )),
-                        pw.Divider(),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('Total Paid (${invoice.paymentMode}):', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                            pw.Text('Rs ${invoice.grandTotal.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              );
-              await Printing.layoutPdf(onLayout: (format) async => doc.save());
-            },
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: valueColor ?? AppColors.stone900,
+              ),
+            ),
           ),
         ],
       ),

@@ -1265,112 +1265,131 @@ Thank you for training with Metro Fitness Club!`;
           </div>
         )}
 
-        {/* MODAL: OFFICIAL PRINTABLE TAX INVOICE & RECEIPT */}
+        {/* MODAL: AUTHENTIC COMPACT POS THERMAL RECEIPT SLIP */}
         {showReceiptModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 border border-stone-200 shadow-2xl my-6">
-              {/* Receipt Header Controls */}
-              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🧾</span>
-                  <div>
-                    <h3 className="font-black text-stone-900 text-sm">Official Tax Invoice / Receipt</h3>
-                    <p className="text-[10px] text-stone-500 font-mono">ID: {showReceiptModal.id}</p>
+            <div className="max-w-xs w-full space-y-4 my-6">
+              {/* Thermal Paper Slip Container */}
+              <div id="printable-receipt-card" className="p-5 bg-[#FCFCFB] rounded-xl border border-stone-300 shadow-2xl font-mono text-xs space-y-3">
+                {/* Gym Top Branding */}
+                <div className="text-center space-y-0.5">
+                  <div className="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center mx-auto text-sm font-black mb-1">
+                    🏋️
                   </div>
-                </div>
-                <button
-                  onClick={() => setShowReceiptModal(null)}
-                  className="text-stone-400 hover:text-stone-700 text-sm font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Printable Thermal Receipt Card */}
-              <div id="printable-receipt-card" className="p-5 bg-stone-50 rounded-2xl border border-stone-300 font-mono text-xs space-y-3">
-                {/* Gym Header */}
-                <div className="text-center space-y-0.5 border-b border-dashed border-stone-300 pb-3">
-                  <h2 className="font-black text-stone-900 text-base tracking-wider font-sans">METRO FITNESS CLUB</h2>
-                  <p className="text-[10px] text-stone-500 font-sans">HQ Arena • Main Boulevard, Gulberg III</p>
-                  <p className="text-[9px] text-stone-400">NTN: 8932014-7 • Helpline: +92 300 0000000</p>
+                  <h2 className="font-black text-stone-900 text-sm tracking-wider font-mono">METRO FITNESS CLUB</h2>
+                  <p className="text-[10px] text-stone-600">HQ Arena • Main Blvd, Gulberg III</p>
+                  <p className="text-[9px] text-stone-500">NTN: 8932014-7 • Helpline: +92 300 0000000</p>
                 </div>
 
-                {/* Metadata */}
-                <div className="grid grid-cols-2 gap-2 text-[10px] text-stone-600 border-b border-dashed border-stone-300 pb-2">
-                  <div>
-                    <span className="block font-bold">INVOICE #: {showReceiptModal.id}</span>
-                    <span>DATE: {showReceiptModal.createdAt}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block font-bold">MEMBER: {showReceiptModal.memberName}</span>
-                    <span>ROLL #: {showReceiptModal.memberRoll}</span>
-                  </div>
+                {/* Dashed Separator */}
+                <div className="border-b border-dashed border-stone-400 my-1" />
+
+                {/* POS Terminal Metadata */}
+                <div className="space-y-0.5 text-[10px] text-stone-700">
+                  <div className="flex justify-between"><span className="text-stone-500">RCPT NO  :</span><span className="font-bold text-stone-900">{showReceiptModal.id}</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">DATE/TIME:</span><span>{showReceiptModal.createdAt} 10:30 PM</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">TERMINAL :</span><span>POS Counter #01</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">CASHIER  :</span><span>Reception Staff</span></div>
                 </div>
 
-                {/* Itemized Table */}
-                <div className="space-y-1.5 py-1">
-                  <div className="flex justify-between font-bold text-stone-900 border-b border-stone-200 pb-1 text-[10px]">
-                    <span>DESCRIPTION</span>
-                    <span>AMOUNT</span>
-                  </div>
+                <div className="border-b border-dashed border-stone-400 my-1" />
+
+                {/* Member & Plan Details */}
+                <div className="text-center text-[9px] font-bold text-stone-500 tracking-wider">--- MEMBER & PLAN DETAILS ---</div>
+                <div className="space-y-0.5 text-[10px] text-stone-800">
+                  <div className="flex justify-between"><span className="text-stone-500">NAME     :</span><span className="font-bold">{showReceiptModal.memberName}</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">ROLL NO  :</span><span className="font-bold text-orange-600">{showReceiptModal.memberRoll}</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">PHONE    :</span><span>{showReceiptModal.phone}</span></div>
+                  <div className="flex justify-between"><span className="text-stone-500">PLAN TIER:</span><span className="font-bold">{showReceiptModal.items[0]?.name || "Membership Plan"}</span></div>
+                </div>
+
+                <div className="border-b border-dashed border-stone-400 my-1" />
+
+                {/* Itemized Table Header */}
+                <div className="flex justify-between font-bold text-stone-900 text-[9.5px]">
+                  <span>ITEM DESCRIPTION</span>
+                  <span>QTY  AMOUNT</span>
+                </div>
+                <div className="border-b border-dashed border-stone-300 my-0.5" />
+
+                {/* Items List */}
+                <div className="space-y-1 py-0.5">
                   {showReceiptModal.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-stone-700 text-[11px]">
-                      <span>{item.name} {item.qty > 1 ? `(x${item.qty})` : ""}</span>
-                      <span className="font-bold">Rs {(item.price * item.qty).toLocaleString()}</span>
+                    <div key={idx} className="flex justify-between text-stone-800 text-[10.5px]">
+                      <span className="truncate pr-2 font-medium">{item.name}</span>
+                      <span className="font-bold shrink-0">{item.qty}  Rs {(item.price * item.qty).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
 
+                <div className="border-b border-dashed border-stone-400 my-1" />
+
                 {/* Financial Summary */}
-                <div className="border-t border-dashed border-stone-300 pt-2 space-y-1 text-[11px]">
+                <div className="space-y-0.5 text-[10.5px]">
                   <div className="flex justify-between text-stone-600">
-                    <span>Subtotal:</span>
+                    <span>SUBTOTAL   :</span>
                     <span>Rs {showReceiptModal.subtotal.toLocaleString()}</span>
                   </div>
                   {showReceiptModal.discount > 0 && (
                     <div className="flex justify-between text-rose-600">
-                      <span>Discount:</span>
+                      <span>DISCOUNT   :</span>
                       <span>- Rs {showReceiptModal.discount.toLocaleString()}</span>
                     </div>
                   )}
-                  <div className="flex justify-between font-black text-stone-900 text-sm pt-1 border-t border-stone-200">
-                    <span>TOTAL PAID:</span>
-                    <span className="text-emerald-600">Rs {showReceiptModal.total.toLocaleString()}</span>
+                  <div className="border-y-2 border-stone-900 py-1 flex justify-between font-black text-stone-900 text-sm">
+                    <span>NET PAID:</span>
+                    <span className="text-emerald-700">Rs {showReceiptModal.total.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-stone-500 text-[10px]">
-                    <span>PAYMENT MODE:</span>
+                  <div className="flex justify-between text-stone-600 text-[10px] pt-1">
+                    <span>PAY MODE   :</span>
                     <span className="font-bold">{showReceiptModal.paymentMode} {showReceiptModal.reference ? `(${showReceiptModal.reference})` : ""}</span>
                   </div>
                   {showReceiptModal.cashTendered ? (
-                    <div className="flex justify-between text-stone-500 text-[10px]">
-                      <span>TENDERED / CHANGE:</span>
-                      <span>Rs {showReceiptModal.cashTendered} / Rs {showReceiptModal.changeReturned}</span>
+                    <div className="flex justify-between text-stone-600 text-[10px]">
+                      <span>CASH TENDER:</span>
+                      <span>Rs {showReceiptModal.cashTendered.toLocaleString()} (Change: Rs {showReceiptModal.changeReturned?.toLocaleString() || 0})</span>
                     </div>
                   ) : null}
                 </div>
 
-                {/* Receipt Footer & QR Note */}
-                <div className="text-center pt-2 border-t border-dashed border-stone-300 text-[9px] text-stone-400 space-y-1">
-                  <p>Computer generated tax invoice • No signature required</p>
-                  <p className="font-bold text-stone-600">Thank you for working out with Metro Fitness!</p>
+                <div className="border-b border-dashed border-stone-400 my-1" />
+
+                {/* Receipt Footer & QR */}
+                <div className="text-center space-y-1 text-[9px] text-stone-500 pt-1">
+                  <div className="w-16 h-16 bg-stone-900 text-white mx-auto flex items-center justify-center font-bold text-[8px] rounded">
+                    [QR CODE]
+                  </div>
+                  <p className="font-bold text-stone-700 pt-1">*** THANK YOU FOR TRAINING WITH US ***</p>
+                  <p className="text-[8px] text-stone-400">Computer-generated POS Tax Receipt • Non-refundable</p>
+                  <div className="border-b border-dashed border-stone-300 my-1" />
+                  <p className="font-bold text-stone-900 flex items-center justify-center gap-1 text-[8.5px]">
+                    <span>⚡</span>
+                    <span>Powered by FitBizz Cloud Gym POS</span>
+                  </p>
                 </div>
               </div>
 
-              {/* Action Buttons: WhatsApp & Print */}
+              {/* Action Buttons: WhatsApp, Print 80mm, Close */}
               <div className="flex gap-2">
                 <button
                   onClick={() => sendWhatsAppReceipt(showReceiptModal)}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-xs transition"
                 >
                   <span>💬</span>
-                  <span>Send on WhatsApp</span>
+                  <span>WhatsApp</span>
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                  className="flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-xs transition"
                 >
                   <span>🖨️</span>
-                  <span>Print / PDF Receipt</span>
+                  <span>Print 80mm</span>
+                </button>
+                <button
+                  onClick={() => setShowReceiptModal(null)}
+                  className="px-3 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs transition"
+                >
+                  ✕
                 </button>
               </div>
             </div>
