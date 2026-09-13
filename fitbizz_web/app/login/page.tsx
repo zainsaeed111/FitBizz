@@ -47,7 +47,7 @@ export default function LoginPage() {
         if (data.role === "SUPER_ADMIN") {
           router.push("/");
         } else {
-          router.push("/members");
+          router.push(`/gyms/${data.tenantId || "tenant-001"}`);
         }
         return;
       }
@@ -68,7 +68,7 @@ export default function LoginPage() {
         localStorage.setItem("fitbizz_user_role", "OWNER");
         localStorage.setItem("fitbizz_user_name", "Kamran Ahmed (Owner)");
         localStorage.setItem("fitbizz_gym_tenant_id", "tenant-001");
-        router.push("/members");
+        router.push("/gyms/tenant-001");
       } else if (cleanId.includes("reception") || cleanId === "rec-101") {
         localStorage.setItem("fitbizz_user_role", "RECEPTIONIST");
         localStorage.setItem("fitbizz_user_name", "Ayesha Khan (Front Desk)");

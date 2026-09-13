@@ -28,14 +28,14 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _selectedIndex = 0;
   bool _isSyncing = false;
-  bool _isDarkSidebar = true;
+  bool _isDarkSidebar = false; // Default clean light mode matching modern web
   bool _isSidebarCollapsed = false;
 
   void _triggerManualSync() async {
     setState(() {
       _isSyncing = true;
     });
-    await Future.delayed(const Duration(milliseconds: 700));
+    await Future.delayed(const Duration(milliseconds: 600));
     if (mounted) {
       setState(() {
         _isSyncing = false;
@@ -43,7 +43,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       AppToast.showSync(
         context,
         'Database Synchronized',
-        'Local SQLite changes successfully pushed to PostgreSQL server.',
+        'Local SQLite changes successfully synced with Cloud Server.',
       );
     }
   }
@@ -153,10 +153,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           return Scaffold(
             body: Row(
               children: [
-                // Synchronized Desktop Sidebar (Supports Day/Night mode & Collapse)
+                // Clean Non-congested Sidebar
                 _buildSidebar(navItems),
 
-                // Main Workspace with Header
+                // Main Workspace Area
                 Expanded(
                   child: Column(
                     children: [
@@ -202,7 +202,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  /// Synchronized Sidebar Widget (Matching Super Admin standard 1:1)
+  /// Refined Non-congested Sidebar (Zero Overflow, Day/Night at Top, Sleek Sync)
   Widget _buildSidebar(List<NavigationItemConfig> navItems, {bool isDrawer = false}) {
     final bgColor = _isDarkSidebar ? AppColors.stone900 : Colors.white;
     final borderColor = _isDarkSidebar ? AppColors.stone800 : AppColors.stone200;
@@ -210,12 +210,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final unselectedTextColor = _isDarkSidebar ? AppColors.stone400 : AppColors.stone600;
     final unselectedIconColor = _isDarkSidebar ? AppColors.stone400 : AppColors.stone500;
 
-    final width = isDrawer
-        ? double.infinity
-        : (_isSidebarCollapsed ? 76.0 : 270.0);
+    final width = isDrawer ? double.infinity : (_isSidebarCollapsed ? 72.0 : 260.0);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 180),
       width: width,
       decoration: BoxDecoration(
         color: bgColor,
@@ -224,113 +222,168 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Sidebar Header (Gym Branding & Collapse Button)
+          // 1. Top Header (Logo + Tenant Title + Day/Night Mode + Collapse Button)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            height: 60,
+            padding: EdgeInsets.symmetric(horizontal: _isSidebarCollapsed && !isDrawer ? 8 : 12),
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
             child: Row(
+              mainAxisAlignment: _isSidebarCollapsed && !isDrawer ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
               children: [
-                const AppLogo(size: 34),
-                if (!_isSidebarCollapsed || isDrawer) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.authState.tenantName,
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: titleColor),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                if (_isSidebarCollapsed && !isDrawer) ...[
+                  InkWell(
+                    onTap: () => setState(() => _isSidebarCollapsed = false),
+                    child: const AppLogo(size: 32),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      const AppLogo(size: 32),
+                      const SizedBox(width: 10),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.authState.tenantName,
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: titleColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Tenant: ${widget.authState.tenantId ?? "tenant-001"}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.japaniPhalDark),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Day / Night Mode Toggle (Moved to Top)
+                      InkWell(
+                        onTap: () => setState(() => _isDarkSidebar = !_isDarkSidebar),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _isDarkSidebar ? AppColors.stone800 : AppColors.stone100,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Text(
+                            _isDarkSidebar ? '🌙' : '☀️',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
-                        Text(
-                          'Tenant: ${widget.authState.tenantId ?? "tenant-001"}',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.japaniPhal),
+                      ),
+                      if (!isDrawer) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.keyboard_double_arrow_left,
+                            size: 16,
+                            color: unselectedIconColor,
+                          ),
+                          tooltip: 'Collapse Sidebar',
+                          onPressed: () => setState(() => _isSidebarCollapsed = true),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ],
-                if (!isDrawer)
-                  IconButton(
-                    icon: Icon(
-                      _isSidebarCollapsed ? Icons.keyboard_double_arrow_right : Icons.keyboard_double_arrow_left,
-                      size: 16,
-                      color: unselectedIconColor,
-                    ),
-                    tooltip: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
-                    onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
-                  ),
               ],
             ),
           ),
 
-          // 2. Active Tenant Role & Super Admin Switcher (When not collapsed)
+          // Collapsed Top Quick Controls
+          if (_isSidebarCollapsed && !isDrawer)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: () => setState(() => _isDarkSidebar = !_isDarkSidebar),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _isDarkSidebar ? AppColors.stone800 : AppColors.stone100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(_isDarkSidebar ? '🌙' : '☀️', style: const TextStyle(fontSize: 11)),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () => setState(() => _isSidebarCollapsed = false),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _isDarkSidebar ? AppColors.stone800 : AppColors.stone100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(Icons.keyboard_double_arrow_right, size: 14, color: unselectedIconColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // 2. Tenant Context & Role Badge (When not collapsed)
           if (!_isSidebarCollapsed || isDrawer) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
               child: Column(
                 children: [
-                  // Role Badge Card
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.japaniPhal.withValues(alpha: _isDarkSidebar ? 0.15 : 0.08),
+                      color: AppColors.japaniPhal.withValues(alpha: _isDarkSidebar ? 0.15 : 0.07),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.japaniPhal.withValues(alpha: 0.3)),
+                      border: Border.all(color: AppColors.japaniPhal.withValues(alpha: 0.25)),
                     ),
                     child: Row(
                       children: [
-                        Icon(widget.authState.userRole.icon, size: 14, color: AppColors.japaniPhal),
+                        Icon(widget.authState.userRole.icon, size: 14, color: AppColors.japaniPhalDark),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.authState.userRole.label,
-                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: titleColor),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                widget.authState.branchName ?? 'Main Facility HQ',
-                                style: TextStyle(fontSize: 9, color: _isDarkSidebar ? AppColors.stone400 : AppColors.stone500),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          child: Text(
+                            '${widget.authState.userRole.label} • ${widget.authState.branchName ?? "Gulberg Arena"}',
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: titleColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ),
-
-                  // Return to Super Admin HQ button (if authorized)
                   if (widget.onReturnToSuperAdmin != null) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: widget.onReturnToSuperAdmin,
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                         decoration: BoxDecoration(
                           color: _isDarkSidebar ? AppColors.darkSurfaceElevated : AppColors.stone100,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: borderColor),
                         ),
                         child: Row(
                           children: [
-                            const Text('🏢', style: TextStyle(fontSize: 12)),
+                            const Text('🏢', style: TextStyle(fontSize: 11)),
                             const SizedBox(width: 6),
                             Text(
                               'Back to Super Admin HQ',
-                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: titleColor),
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: titleColor),
                             ),
                             const Spacer(),
-                            const Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.japaniPhalDark),
+                            const Icon(Icons.chevron_right, size: 13, color: AppColors.japaniPhalDark),
                           ],
                         ),
                       ),
@@ -341,10 +394,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
           ],
 
-          // 3. Navigation Links List
+          const SizedBox(height: 2),
+
+          // 3. Navigation Links (Clean, Spacious & Zero Congestion)
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               itemCount: navItems.length,
               itemBuilder: (context, idx) {
                 final item = navItems[idx];
@@ -353,20 +408,33 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 if (_isSidebarCollapsed && !isDrawer) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: IconButton(
-                      icon: Icon(
-                        isSelected ? item.activeIcon : item.icon,
-                        color: isSelected ? AppColors.japaniPhalDark : unselectedIconColor,
-                        size: 22,
+                    child: Center(
+                      child: Tooltip(
+                        message: item.label,
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedIndex = idx),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.japaniPhalDark : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              isSelected ? item.activeIcon : item.icon,
+                              color: isSelected ? Colors.white : unselectedIconColor,
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ),
-                      tooltip: item.label,
-                      onPressed: () => setState(() => _selectedIndex = idx),
                     ),
                   );
                 }
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 3),
+                  margin: const EdgeInsets.only(bottom: 2),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     gradient: isSelected
@@ -376,43 +444,36 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             end: Alignment.bottomRight,
                           )
                         : null,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.japaniPhalDark.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
+                    color: !isSelected && !_isDarkSidebar ? Colors.transparent : null,
                   ),
                   child: ListTile(
                     dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    tileColor: Colors.transparent,
                     leading: Icon(
                       isSelected ? item.activeIcon : item.icon,
                       color: isSelected ? Colors.white : unselectedIconColor,
-                      size: 19,
+                      size: 18,
                     ),
                     title: Text(
                       item.label,
                       style: TextStyle(
                         color: isSelected ? Colors.white : unselectedTextColor,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 12.5,
+                        fontSize: 12,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: item.badge != null
                         ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Colors.white.withValues(alpha: 0.25)
                                   : (_isDarkSidebar ? AppColors.stone800 : AppColors.stone100),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               item.badge!,
@@ -420,7 +481,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                                 color: isSelected
                                     ? Colors.white
                                     : (_isDarkSidebar ? AppColors.stone400 : AppColors.japaniPhalDark),
-                                fontSize: 9,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -436,57 +497,52 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
           ),
 
-          // 4. Local SQLite Sync Engine Card
+          // 4. Ultra-Sleek Minimalist Local Sync Pill (No Clunky Box)
           if (!_isSidebarCollapsed || isDrawer) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: BoxDecoration(
                   color: _isDarkSidebar ? AppColors.darkSurfaceElevated : AppColors.stone50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: borderColor),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.cloud_done_outlined,
-                          size: 13,
-                          color: _isSyncing ? AppColors.amber500 : AppColors.green600,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          _isSyncing ? 'Syncing...' : 'Local Engine Active',
-                          style: TextStyle(
-                            color: _isSyncing ? AppColors.amber500 : AppColors.green600,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10.5,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isSyncing ? AppColors.amber500 : AppColors.green600,
+                      ),
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Drift SQLite ↔ PostgreSQL Sync',
-                      style: TextStyle(color: _isDarkSidebar ? AppColors.stone400 : AppColors.stone500, fontSize: 9.5),
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: titleColor,
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          side: BorderSide(color: borderColor),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _isSyncing ? 'Syncing...' : 'Local Engine • 100% OK',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _isSyncing ? AppColors.amber500 : (_isDarkSidebar ? AppColors.stone300 : AppColors.stone700),
                         ),
-                        onPressed: _isSyncing ? null : _triggerManualSync,
-                        child: Text(
-                          'Force Sync',
-                          style: TextStyle(color: titleColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: _isSyncing ? null : _triggerManualSync,
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.japaniPhalDark,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Sync',
+                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -494,100 +550,69 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ),
               ),
             ),
+          ] else ...[
+            // Collapsed Sync Icon
+            Center(
+              child: Tooltip(
+                message: 'Force Sync SQLite with Cloud',
+                child: IconButton(
+                  icon: Icon(
+                    Icons.sync,
+                    size: 18,
+                    color: _isSyncing ? AppColors.amber500 : AppColors.green600,
+                  ),
+                  onPressed: _isSyncing ? null : _triggerManualSync,
+                ),
+              ),
+            ),
           ],
 
-          // 5. Day / Night Mode Switcher & User Profile
+          // 5. User Profile Card
           Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: borderColor)),
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: _isSidebarCollapsed && !isDrawer ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
-                // Theme Toggle Switcher Pill (Day / Night Mode)
-                if (!_isSidebarCollapsed || isDrawer)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _isDarkSidebar ? AppColors.darkSurfaceElevated : AppColors.stone50,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Sidebar Appearance:',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: unselectedTextColor),
-                        ),
-                        InkWell(
-                          onTap: () => setState(() => _isDarkSidebar = !_isDarkSidebar),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: _isDarkSidebar ? AppColors.stone800 : Colors.white,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: borderColor),
-                            ),
-                            child: Text(
-                              _isDarkSidebar ? '🌙 Dark' : '☀️ Light',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: titleColor),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // User Profile & Sign Out
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: _isDarkSidebar ? AppColors.darkSurfaceElevated : AppColors.stone50,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: AppColors.japaniPhalDark,
-                        child: Text(
-                          widget.authState.fullName.isNotEmpty ? widget.authState.fullName[0].toUpperCase() : 'O',
-                          style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      if (!_isSidebarCollapsed || isDrawer) ...[
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.authState.fullName,
-                                style: TextStyle(color: titleColor, fontWeight: FontWeight.bold, fontSize: 11),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                widget.authState.email ?? 'owner@metrofitness.com',
-                                style: TextStyle(color: unselectedTextColor, fontSize: 9),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: AppColors.stone400, size: 16),
-                          tooltip: 'Sign Out',
-                          onPressed: () => widget.authState.logout(),
-                        ),
-                      ],
-                    ],
+                CircleAvatar(
+                  radius: 13,
+                  backgroundColor: AppColors.japaniPhalDark,
+                  child: Text(
+                    widget.authState.fullName.isNotEmpty ? widget.authState.fullName[0].toUpperCase() : 'O',
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
+                if (!_isSidebarCollapsed || isDrawer) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.authState.fullName,
+                          style: TextStyle(color: titleColor, fontWeight: FontWeight.bold, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          widget.authState.email ?? 'owner@metrofitness.com',
+                          style: TextStyle(color: unselectedTextColor, fontSize: 9),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.logout, color: AppColors.stone400, size: 16),
+                    tooltip: 'Sign Out',
+                    onPressed: () => widget.authState.logout(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -596,12 +621,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  /// Top Header Bar for Desktop (Synchronized with Super Admin standard)
+  /// Desktop Top Header Bar
   Widget _buildTopHeader(List<NavigationItemConfig> navItems) {
     final currentRegion = AppLocaleController.instance.currentRegion;
 
     return Container(
-      height: 58,
+      height: 56,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -609,16 +634,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ),
       child: Row(
         children: [
-          // Breadcrumb / Active Screen
-          Icon(navItems[_selectedIndex].icon, size: 18, color: AppColors.japaniPhalDark),
+          // Breadcrumb / Screen Title
+          Icon(navItems[_selectedIndex].icon, size: 17, color: AppColors.japaniPhalDark),
           const SizedBox(width: 8),
           Text(
             navItems[_selectedIndex].label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.stone900),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.stone900),
           ),
           const SizedBox(width: AppSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
             decoration: BoxDecoration(
               color: AppColors.japaniPhal.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(6),
@@ -631,41 +656,41 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
           const Spacer(),
 
-          // Trial Status Pill
+          // 14 Days Remaining Pill
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
             decoration: BoxDecoration(
               color: AppColors.amber500.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.amber500.withValues(alpha: 0.3)),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.hourglass_top, size: 13, color: AppColors.amber500),
+                Icon(Icons.hourglass_top, size: 12, color: AppColors.amber500),
                 SizedBox(width: 4),
-                Text('Pro Plan • 14 Days Remaining', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.amber500)),
+                Text('Pro Plan • 14 Days Trial', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.amber500)),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
 
-          // Branch Indicator Pill
+          // Branch Pill
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
             decoration: BoxDecoration(
               color: AppColors.stone50,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.stone200),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.location_on, size: 13, color: AppColors.japaniPhalDark),
+                const Icon(Icons.location_on, size: 12, color: AppColors.japaniPhalDark),
                 const SizedBox(width: 4),
                 Text(
                   widget.authState.branchName ?? 'Gulberg Main Arena',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.stone700),
+                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.stone700),
                 ),
               ],
             ),
@@ -727,10 +752,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               ),
             ],
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
               decoration: BoxDecoration(
                 color: AppColors.stone50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: AppColors.stone200),
               ),
               child: Row(
@@ -747,10 +772,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   const SizedBox(width: 5),
                   Text(
                     '${currentRegion.currencyCode} (${currentRegion.currencySymbol.trim()})',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.stone800),
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.stone800),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.arrow_drop_down, size: 16, color: AppColors.stone500),
+                  const Icon(Icons.arrow_drop_down, size: 15, color: AppColors.stone500),
                 ],
               ),
             ),
@@ -760,7 +785,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  /// Mobile App Bar for Screens < 950px
+  /// Mobile App Bar
   PreferredSizeWidget _buildMobileAppBar(List<NavigationItemConfig> navItems) {
     final currentRegion = AppLocaleController.instance.currentRegion;
 
@@ -778,7 +803,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         children: [
           Text(
             widget.authState.tenantName,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.stone900),
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: AppColors.stone900),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -792,7 +817,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.sync, color: _isSyncing ? AppColors.amber500 : AppColors.japaniPhalDark, size: 20),
+          icon: Icon(Icons.sync, color: _isSyncing ? AppColors.amber500 : AppColors.japaniPhalDark, size: 19),
           tooltip: 'Force Sync',
           onPressed: _triggerManualSync,
         ),
@@ -816,7 +841,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   : (currentRegion == AppRegion.usa
                       ? '🇺🇸'
                       : (currentRegion == AppRegion.uk ? '🇬🇧' : '🇦🇪')),
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(fontSize: 17),
             ),
           ),
         ),
