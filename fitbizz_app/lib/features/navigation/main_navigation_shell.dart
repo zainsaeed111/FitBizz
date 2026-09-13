@@ -210,11 +210,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final unselectedTextColor = _isDarkSidebar ? AppColors.stone400 : AppColors.stone600;
     final unselectedIconColor = _isDarkSidebar ? AppColors.stone400 : AppColors.stone500;
 
-    final width = isDrawer ? double.infinity : (_isSidebarCollapsed ? 72.0 : 260.0);
+    final width = isDrawer ? double.infinity : (_isSidebarCollapsed ? 68.0 : 260.0);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
       width: width,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: bgColor,
         border: Border(right: BorderSide(color: borderColor)),
@@ -225,7 +227,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           // 1. Top Header (Logo + Tenant Title + Day/Night Mode + Collapse Button)
           Container(
             height: 60,
-            padding: EdgeInsets.symmetric(horizontal: _isSidebarCollapsed && !isDrawer ? 8 : 12),
+            padding: EdgeInsets.symmetric(horizontal: _isSidebarCollapsed && !isDrawer ? 6 : 12),
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
@@ -233,9 +235,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               mainAxisAlignment: _isSidebarCollapsed && !isDrawer ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
               children: [
                 if (_isSidebarCollapsed && !isDrawer) ...[
-                  InkWell(
-                    onTap: () => setState(() => _isSidebarCollapsed = false),
-                    child: const AppLogo(size: 32),
+                  Tooltip(
+                    message: 'Expand Sidebar',
+                    child: InkWell(
+                      onTap: () => setState(() => _isSidebarCollapsed = false),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: AppLogo(size: 32),
+                      ),
+                    ),
                   ),
                 ] else ...[
                   Row(
@@ -625,13 +634,25 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget _buildTopHeader(List<NavigationItemConfig> navItems) {
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppColors.stone200)),
       ),
       child: Row(
         children: [
+          // Sidebar Toggle Button
+          IconButton(
+            icon: Icon(
+              _isSidebarCollapsed ? Icons.menu : Icons.menu_open,
+              size: 20,
+              color: AppColors.stone700,
+            ),
+            tooltip: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+            onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+          ),
+          const SizedBox(width: 4),
+
           // Breadcrumb / Screen Title
           Icon(navItems[_selectedIndex].icon, size: 17, color: AppColors.japaniPhalDark),
           const SizedBox(width: 8),
