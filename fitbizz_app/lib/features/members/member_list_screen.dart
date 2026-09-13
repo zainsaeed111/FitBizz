@@ -24,6 +24,8 @@ class MemberListScreen extends StatefulWidget {
 class _MemberListScreenState extends State<MemberListScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  String _statusFilter = 'ALL'; // ALL, ACTIVE, DUE, OVERDUE
+  String _planFilter = 'ALL';
   MemberModel? _selectedMember;
 
   // Preset Avatars for Fast Admission
@@ -76,6 +78,135 @@ class _MemberListScreenState extends State<MemberListScreen> {
           child: child!,
         );
       },
+    );
+  }
+
+  // --- FAST SETTLE DUE FEE MODAL ---
+  void _showSettleFeeModal(MemberModel member) {
+    final amountController = TextEditingController(text: (member.dueAmount > 0 ? member.dueAmount : member.monthlyFee).toInt().toString());
+    final refController = TextEditingController();
+    String paymentMode = 'CASH';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final double due = double.tryParse(amountController.text) ?? (member.dueAmount > 0 ? member.dueAmount : member.monthlyFee);
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.green600.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.point_of_sale, color: AppColors.green600, size: 20),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Settle Dues: ${member.fullName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('${member.memberNumber} • ${member.planName}', style: const TextStyle(fontSize: 11, color: AppColors.stone500)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.stone100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Current Pending Dues:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text(
+                          formatMoney(member.dueAmount > 0 ? member.dueAmount : member.monthlyFee),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.red600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  AppTextField(
+                    label: 'Amount to Pay (${AppLocaleController.instance.currency})',
+                    hint: '4500',
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  const Text('Payment Mode:', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.stone700)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('💵 Cash (POS)'),
+                        selected: paymentMode == 'CASH',
+                        selectedColor: AppColors.green600,
+                        labelStyle: TextStyle(color: paymentMode == 'CASH' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
+                        onSelected: (_) => setModalState(() => paymentMode = 'CASH'),
+                      ),
+                      ChoiceChip(
+                        label: const Text('💳 Online / Raast'),
+                        selected: paymentMode == 'ONLINE',
+                        selectedColor: AppColors.japaniPhalDark,
+                        labelStyle: TextStyle(color: paymentMode == 'ONLINE' ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
+                        onSelected: (_) => setModalState(() => paymentMode = 'ONLINE'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.secondary,
+                onPressed: () => Navigator.pop(context),
+              ),
+              AppButton(
+                label: 'Collect & Issue Receipt',
+                icon: Icons.check_circle,
+                onPressed: () {
+                  final paid = double.tryParse(amountController.text) ?? due;
+                  MembersController.instance.recordFeePayment(
+                    member.id,
+                    paid,
+                    paymentMode,
+                    extendMonths: 1,
+                    receiptRef: refController.text.trim().isEmpty ? null : refController.text.trim(),
+                  );
+                  Navigator.pop(context);
+                  AppToast.showSuccess(
+                    context,
+                    'Fee Collected Successfully',
+                    'Received ${formatMoney(paid)} from ${member.fullName}. Plan extended for 1 month.',
+                  );
+                  setState(() {
+                    _selectedMember = MembersController.instance.members.firstWhere((m) => m.id == member.id);
+                  });
+                },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -957,13 +1088,36 @@ class _MemberListScreenState extends State<MemberListScreen> {
       ]),
       builder: (context, _) {
         final allMembers = MembersController.instance.members;
+
+        final activeCount = allMembers.where((m) => m.status == 'ACTIVE' && m.feeStatus == 'PAID' && !m.isDueSoon).length;
+        final dueCount = allMembers.where((m) => m.isDueSoon && !m.isOverdue).length;
+        final overdueCount = allMembers.where((m) => m.isOverdue).length;
+
         final filtered = allMembers.where((m) {
           final query = _searchQuery.toLowerCase();
-          return m.fullName.toLowerCase().contains(query) ||
+          final matchesSearch = m.fullName.toLowerCase().contains(query) ||
               m.memberNumber.toLowerCase().contains(query) ||
               m.phone.toLowerCase().contains(query) ||
               (m.cnic != null && m.cnic!.toLowerCase().contains(query)) ||
               (m.bloodGroup != null && m.bloodGroup!.toLowerCase().contains(query));
+
+          if (!matchesSearch) return false;
+
+          // Status / Fee filter
+          if (_statusFilter == 'ACTIVE') {
+            if (m.status != 'ACTIVE' || m.isDueSoon || m.isOverdue) return false;
+          } else if (_statusFilter == 'DUE') {
+            if (!m.isDueSoon || m.isOverdue) return false;
+          } else if (_statusFilter == 'OVERDUE') {
+            if (!m.isOverdue) return false;
+          }
+
+          // Plan filter
+          if (_planFilter != 'ALL') {
+            if (m.planId != _planFilter && m.planName != _planFilter) return false;
+          }
+
+          return true;
         }).toList();
 
         return Scaffold(
@@ -977,21 +1131,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header Row
+                      // Header Row (Zero-Overflow Guaranteed)
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(tr('nav_members'), style: AppTypography.h1),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${allMembers.length} Registered Members • Digital QR Passes & Health Tracking',
-                                style: AppTypography.body.copyWith(color: AppColors.stone500),
-                              ),
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(tr('nav_members'), style: AppTypography.h1.copyWith(fontSize: 22)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${allMembers.length} Members • Passes & Billing',
+                                  style: AppTypography.caption.copyWith(color: AppColors.stone500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: AppSpacing.sm),
                           AppButton(
                             label: 'Admit Member',
                             icon: Icons.person_add,
@@ -999,7 +1157,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.md),
 
                       // Search Input
                       AppTextField(
@@ -1007,6 +1165,113 @@ class _MemberListScreenState extends State<MemberListScreen> {
                         hint: 'Search by Name, Roll #, Phone, CNIC, or Blood Group...',
                         controller: _searchController,
                         onChanged: (val) => setState(() => _searchQuery = val),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+
+                      // Filter Chips Bar (All, Active, Fee Due, Overdue)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            ChoiceChip(
+                              label: Text('All (${allMembers.length})'),
+                              selected: _statusFilter == 'ALL',
+                              selectedColor: AppColors.japaniPhalDark,
+                              labelStyle: TextStyle(
+                                color: _statusFilter == 'ALL' ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _statusFilter = 'ALL'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: Text('✅ Active ($activeCount)'),
+                              selected: _statusFilter == 'ACTIVE',
+                              selectedColor: AppColors.green600,
+                              labelStyle: TextStyle(
+                                color: _statusFilter == 'ACTIVE' ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _statusFilter = 'ACTIVE'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: Text('⚠️ Due Soon ($dueCount)'),
+                              selected: _statusFilter == 'DUE',
+                              selectedColor: Colors.amber.shade800,
+                              labelStyle: TextStyle(
+                                color: _statusFilter == 'DUE' ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _statusFilter = 'DUE'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: Text('❌ Overdue ($overdueCount)'),
+                              selected: _statusFilter == 'OVERDUE',
+                              selectedColor: AppColors.red600,
+                              labelStyle: TextStyle(
+                                color: _statusFilter == 'OVERDUE' ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _statusFilter = 'OVERDUE'),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(width: 1, height: 20, color: AppColors.stone300),
+                            const SizedBox(width: 12),
+                            ChoiceChip(
+                              label: const Text('All Plans'),
+                              selected: _planFilter == 'ALL',
+                              selectedColor: AppColors.stone800,
+                              labelStyle: TextStyle(
+                                color: _planFilter == 'ALL' ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _planFilter = 'ALL'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: const Text('Basic'),
+                              selected: _planFilter == 'plan_basic' || _planFilter == 'Basic Plan',
+                              selectedColor: AppColors.stone800,
+                              labelStyle: TextStyle(
+                                color: (_planFilter == 'plan_basic' || _planFilter == 'Basic Plan') ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _planFilter = 'plan_basic'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: const Text('Silver'),
+                              selected: _planFilter == 'plan_silver' || _planFilter == 'Silver Plan',
+                              selectedColor: AppColors.stone800,
+                              labelStyle: TextStyle(
+                                color: (_planFilter == 'plan_silver' || _planFilter == 'Silver Plan') ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _planFilter = 'plan_silver'),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
+                              label: const Text('Gold VIP'),
+                              selected: _planFilter == 'plan_gold' || _planFilter == 'Gold VIP Plan',
+                              selectedColor: AppColors.stone800,
+                              labelStyle: TextStyle(
+                                color: (_planFilter == 'plan_gold' || _planFilter == 'Gold VIP Plan') ? Colors.white : AppColors.stone800,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                              onSelected: (_) => setState(() => _planFilter = 'plan_gold'),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
 
@@ -1039,26 +1304,55 @@ class _MemberListScreenState extends State<MemberListScreen> {
                                                 children: [
                                                   Row(
                                                     children: [
-                                                      Text(
-                                                        member.fullName,
-                                                        style: AppTypography.body.copyWith(
-                                                          fontWeight: FontWeight.bold,
-                                                          color: isSelected ? AppColors.japaniPhalDark : null,
+                                                      Flexible(
+                                                        child: Text(
+                                                          member.fullName,
+                                                          style: AppTypography.body.copyWith(
+                                                            fontWeight: FontWeight.bold,
+                                                            color: isSelected ? AppColors.japaniPhalDark : null,
+                                                          ),
+                                                          overflow: TextOverflow.ellipsis,
                                                         ),
                                                       ),
-                                                      const SizedBox(width: 8),
-                                                      AppBadge(
-                                                        label: member.status,
-                                                        variant: member.status == 'ACTIVE'
-                                                            ? AppBadgeVariant.active
-                                                            : AppBadgeVariant.neutral,
-                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      if (member.isOverdue)
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors.red600.withValues(alpha: 0.15),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: Text(
+                                                            'OVERDUE (${formatMoney(member.dueAmount > 0 ? member.dueAmount : member.monthlyFee)})',
+                                                            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.red600),
+                                                          ),
+                                                        )
+                                                      else if (member.isDueSoon)
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.amber.withValues(alpha: 0.2),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: Text(
+                                                            'DUE SOON (${formatMoney(member.dueAmount > 0 ? member.dueAmount : member.monthlyFee)})',
+                                                            style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                                                          ),
+                                                        )
+                                                      else
+                                                        AppBadge(
+                                                          label: member.status,
+                                                          variant: member.status == 'ACTIVE'
+                                                              ? AppBadgeVariant.active
+                                                              : AppBadgeVariant.neutral,
+                                                        ),
                                                     ],
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
                                                     '${member.memberNumber} • ${member.planName} • ${member.phone}',
                                                     style: AppTypography.caption.copyWith(color: AppColors.stone500),
+                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ],
                                               ),
@@ -1179,7 +1473,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.qr_code, size: 16),
-                  label: const Text('Digital Card', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text('Digital Card', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.japaniPhalDark,
                     foregroundColor: Colors.white,
@@ -1189,11 +1483,25 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   onPressed: () => DigitalMemberPassDialog.show(context, member),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.point_of_sale, size: 16),
+                  label: const Text('Settle Fee', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _showSettleFeeModal(member),
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.upgrade, size: 16),
-                  label: const Text('Upgrade Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text('Upgrade', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1211,11 +1519,31 @@ class _MemberListScreenState extends State<MemberListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Membership & Billing Ledger', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Membership & Billing Ledger', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    if (member.isDueSoon || member.dueAmount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.red600.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'DUE: ${formatMoney(member.dueAmount > 0 ? member.dueAmount : member.monthlyFee)}',
+                          style: const TextStyle(color: AppColors.red600, fontWeight: FontWeight.bold, fontSize: 10.5),
+                        ),
+                      ),
+                  ],
+                ),
                 const Divider(height: 16),
                 _buildDetailRow('Active Plan', member.planName),
                 _buildDetailRow('Plan Duration', '${member.durationMonths} Months'),
                 _buildDetailRow('Total Paid Fee', formatMoney(member.totalFeePaid)),
+                _buildDetailRow('Fee Status', member.isOverdue ? '❌ OVERDUE' : (member.isDueSoon ? '⚠️ DUE SOON' : '✅ PAID IN FULL')),
+                if (member.dueAmount > 0)
+                  _buildDetailRow('Remaining Balance Due', formatMoney(member.dueAmount)),
                 _buildDetailRow('Payment Mode', '${member.paymentMode} ${member.paymentRef != null ? "(${member.paymentRef})" : ""}'),
                 if (member.cashTendered != null)
                   _buildDetailRow('Cash POS Settle', 'Rec: ${formatMoney(member.cashTendered!)} • Change: ${formatMoney(member.changeReturned ?? 0)}'),

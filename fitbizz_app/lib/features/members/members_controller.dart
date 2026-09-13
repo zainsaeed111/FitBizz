@@ -106,8 +106,70 @@ class MembersController extends ChangeNotifier {
         fitnessGoal: 'General Strength & Cardio',
         dietaryPreference: 'Standard Balanced',
       ),
+      MemberModel(
+        id: 'MEM-D204F4',
+        memberNumber: 'METRO-202609-0004',
+        fullName: 'Junaid Khan',
+        phone: '+92 333 7891234',
+        cnic: '35201-7891234-5',
+        dob: '1998-05-14',
+        photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+        planId: 'plan_silver',
+        planName: 'Silver Plan',
+        durationMonths: 1,
+        admissionFee: 1500.0,
+        monthlyFee: 6500.0,
+        totalFeePaid: 3500.0,
+        paymentMode: 'CASH',
+        status: 'ACTIVE',
+        feeStatus: 'DUE',
+        dueAmount: 4500.0,
+        joinedDate: '2026-08-14',
+        expiryDate: '2026-09-15',
+        checkInCount: 19,
+        gender: 'Male',
+        bloodGroup: 'O+',
+        currentWeightKg: 75.0,
+        targetWeightKg: 70.0,
+        fitnessGoal: 'Muscle Building',
+        dietaryPreference: 'High Protein (Balanced)',
+      ),
+      MemberModel(
+        id: 'MEM-E305G5',
+        memberNumber: 'METRO-202609-0005',
+        fullName: 'Sara Tariq',
+        phone: '+92 345 6789012',
+        cnic: '35202-6789012-6',
+        dob: '2001-02-10',
+        photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+        planId: 'plan_gold_vip',
+        planName: 'Gold VIP Plan',
+        durationMonths: 1,
+        admissionFee: 2000.0,
+        monthlyFee: 12000.0,
+        totalFeePaid: 6000.0,
+        paymentMode: 'ONLINE',
+        paymentRef: 'RAAST-8819',
+        status: 'ACTIVE',
+        feeStatus: 'OVERDUE',
+        dueAmount: 8000.0,
+        joinedDate: '2026-08-05',
+        expiryDate: '2026-09-05',
+        checkInCount: 12,
+        gender: 'Female',
+        bloodGroup: 'AB+',
+        currentWeightKg: 62.0,
+        targetWeightKg: 58.0,
+        fitnessGoal: 'Fat Loss & Core',
+        dietaryPreference: 'Keto / Low Carb',
+      ),
     ]);
   }
+
+  List<MemberModel> get dueMembers => _members.where((m) => m.isDueSoon).toList();
+  List<MemberModel> get overdueMembers => _members.where((m) => m.isOverdue).toList();
+  double get totalPendingDues => _members.fold(0.0, (acc, m) => acc + m.dueAmount);
+  double get totalCollectedThisMonth => _members.fold(0.0, (acc, m) => acc + m.totalFeePaid);
 
   String generateNextRollNumber() {
     final now = DateTime.now();
@@ -125,6 +187,37 @@ class MembersController extends ChangeNotifier {
   void addMember(MemberModel member) {
     _members.insert(0, member);
     notifyListeners();
+  }
+
+  void recordFeePayment(String memberId, double amountPaid, String paymentMode, {int extendMonths = 1, String? receiptRef}) {
+    final idx = _members.indexWhere((m) => m.id == memberId);
+    if (idx != -1) {
+      final cur = _members[idx];
+      final newDue = (cur.dueAmount - amountPaid).clamp(0.0, double.infinity);
+      final newPaid = cur.totalFeePaid + amountPaid;
+      
+      // Calculate extended expiry
+      DateTime currentExp;
+      try {
+        currentExp = DateTime.parse(cur.expiryDate);
+      } catch (_) {
+        currentExp = DateTime.now();
+      }
+      final baseDate = currentExp.isBefore(DateTime.now()) ? DateTime.now() : currentExp;
+      final newExp = DateTime(baseDate.year, baseDate.month + extendMonths, baseDate.day);
+      final newExpStr = "${newExp.year}-${newExp.month.toString().padLeft(2, '0')}-${newExp.day.toString().padLeft(2, '0')}";
+
+      _members[idx] = cur.copyWith(
+        totalFeePaid: newPaid,
+        dueAmount: newDue,
+        feeStatus: newDue > 0 ? 'PARTIAL' : 'PAID',
+        status: 'ACTIVE',
+        expiryDate: newExpStr,
+        paymentMode: paymentMode,
+        paymentRef: receiptRef ?? cur.paymentRef,
+      );
+      notifyListeners();
+    }
   }
 
   void updateMember(MemberModel updated) {

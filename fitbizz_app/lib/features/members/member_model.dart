@@ -21,6 +21,9 @@ class MemberModel {
   String expiryDate;
   int checkInCount;
 
+  String feeStatus; // PAID, DUE, OVERDUE, PARTIAL
+  double dueAmount;
+
   // Health & Diet Profile (Optional)
   String gender; // Male, Female, Other
   String? bloodGroup; // A+, B+, O+, AB+, etc.
@@ -52,6 +55,8 @@ class MemberModel {
     this.cashTendered,
     this.changeReturned,
     this.status = 'ACTIVE',
+    this.feeStatus = 'PAID',
+    this.dueAmount = 0.0,
     required this.joinedDate,
     required this.expiryDate,
     this.checkInCount = 0,
@@ -68,6 +73,19 @@ class MemberModel {
   });
 
   String get qrPayload => 'FITBIZZ_PASS:tenant-001:$memberNumber:$phone';
+
+  int get daysUntilExpiry {
+    try {
+      final exp = DateTime.parse(expiryDate);
+      final now = DateTime.now();
+      return exp.difference(DateTime(now.year, now.month, now.day)).inDays;
+    } catch (_) {
+      return 30;
+    }
+  }
+
+  bool get isDueSoon => daysUntilExpiry <= 7 || feeStatus == 'DUE' || feeStatus == 'OVERDUE' || dueAmount > 0;
+  bool get isOverdue => daysUntilExpiry < 0 || feeStatus == 'OVERDUE';
 
   MemberModel copyWith({
     String? id,
@@ -88,6 +106,8 @@ class MemberModel {
     double? cashTendered,
     double? changeReturned,
     String? status,
+    String? feeStatus,
+    double? dueAmount,
     String? joinedDate,
     String? expiryDate,
     int? checkInCount,
@@ -121,6 +141,8 @@ class MemberModel {
       cashTendered: cashTendered ?? this.cashTendered,
       changeReturned: changeReturned ?? this.changeReturned,
       status: status ?? this.status,
+      feeStatus: feeStatus ?? this.feeStatus,
+      dueAmount: dueAmount ?? this.dueAmount,
       joinedDate: joinedDate ?? this.joinedDate,
       expiryDate: expiryDate ?? this.expiryDate,
       checkInCount: checkInCount ?? this.checkInCount,
