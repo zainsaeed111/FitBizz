@@ -1,0 +1,93 @@
+-- V1__init_schema.sql: Core Multi-Tenant Database Schema for FitBizz
+
+CREATE TABLE IF NOT EXISTS tenants (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    domain VARCHAR(255),
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS branches (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    address TEXT,
+    phone VARCHAR(50),
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_branch_tenant_code UNIQUE (tenant_id, code)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id VARCHAR(36) REFERENCES branches(id) ON DELETE SET NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    permissions TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_user_tenant_email UNIQUE (tenant_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS membership_plans (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    duration_days INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+    benefits_json TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS members (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id VARCHAR(36) NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+    member_number VARCHAR(50) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    plan_id VARCHAR(36) REFERENCES membership_plans(id) ON DELETE SET NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_member_tenant_number UNIQUE (tenant_id, member_number)
+);
+
+CREATE TABLE IF NOT EXISTS attendance_records (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id VARCHAR(36) NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+    member_id VARCHAR(36) NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    check_in_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    method VARCHAR(50) NOT NULL DEFAULT 'MANUAL',
+    synced BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS offline_sync_logs (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    device_id VARCHAR(255) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
+    entity_name VARCHAR(100) NOT NULL,
+    payload_json TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'PROCESSED',
+    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_members_tenant_branch ON members(tenant_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_tenant_branch ON attendance_records(tenant_id, branch_id);

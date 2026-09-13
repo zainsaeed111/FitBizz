@@ -1,0 +1,40 @@
+# Build & Target Directories
+fitbizz_backend/target/
+fitbizz_app/build/
+fitbizz_app/.dart_tool/
+fitbizz_app/.pub-cache/
+fitbizz_app/.pub/
+
+# Web / Next.js
+fitbizz_web/node_modules/
+fitbizz_web/.next/
+fitbizz_web/out/
+node_modules/
+.next/
+
+# Maven Wrapper & Log Files
+*.log
+*.class
+*.jar
+*.war
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment & Local Credentials
+.env
+.env*.local
+local.properties
+
+# Android & Windows local artifacts
+fitbizz_app/android/local.properties
+fitbizz_app/windows/flutter/ephemeral/

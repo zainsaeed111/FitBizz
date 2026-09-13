@@ -1,0 +1,25 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+# Environment & Secrets (STRICTLY IGNORED)
+.env
+.env.local
+.env.*
+*.env
+application-local.yml
+application-local.properties
+
+# IDE Settings
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS & Logs
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
