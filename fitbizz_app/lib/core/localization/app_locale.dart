@@ -72,7 +72,7 @@ class AppLocaleController extends ChangeNotifier {
   }
 
   /// Comprehensive 4-Language Translation Dictionary
-  static final Map<String, Map<String, String>> _translations = {
+  Map<String, Map<String, String>> get _translations => {
     // 1. ENGLISH (Default)
     'en': {
       // General & Common

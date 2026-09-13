@@ -100,6 +100,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         icon: Icons.how_to_reg_outlined,
         activeIcon: Icons.how_to_reg,
         labelKey: 'nav_attendance',
+        label: 'Attendance & Biometrics',
         badge: 'Live',
         screen: AttendanceScreen(),
       ));
@@ -214,7 +215,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               return BottomNavigationBarItem(
                 icon: Icon(item.icon),
                 activeIcon: Icon(item.activeIcon),
-                label: tr(item.labelKey).split(' / ').first,
+                label: item.displayLabel.split(' / ').first,
               );
             }).toList(),
           ),
@@ -440,7 +441,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Center(
                       child: Tooltip(
-                        message: tr(item.labelKey),
+                        message: item.displayLabel,
                         child: InkWell(
                           onTap: () => setState(() => _selectedIndex = idx),
                           borderRadius: BorderRadius.circular(8),
@@ -487,7 +488,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       size: 18,
                     ),
                     title: Text(
-                      tr(item.labelKey),
+                      item.displayLabel,
                       style: TextStyle(
                         color: isSelected ? Colors.white : unselectedTextColor,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
@@ -678,7 +679,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           Icon(navItems[_selectedIndex].icon, size: 17, color: AppColors.japaniPhalDark),
           const SizedBox(width: 8),
           Text(
-            tr(navItems[_selectedIndex].labelKey),
+            navItems[_selectedIndex].displayLabel,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.stone900),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -765,7 +766,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            '${tr(navItems[_selectedIndex].labelKey)} • ${widget.authState.branchName ?? "HQ"}',
+            '${navItems[_selectedIndex].displayLabel} • ${widget.authState.branchName ?? "HQ"}',
             style: const TextStyle(fontSize: 10, color: AppColors.stone500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -803,4 +804,11 @@ class NavigationItemConfig {
     this.badge,
     required this.screen,
   });
+
+  String get displayLabel {
+    final translated = tr(labelKey);
+    if (translated != labelKey && translated.isNotEmpty) return translated;
+    if (label.isNotEmpty) return label;
+    return translated;
+  }
 }
