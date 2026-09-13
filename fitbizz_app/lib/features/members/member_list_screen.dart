@@ -11,6 +11,8 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/app_toast.dart';
 import '../plans/membership_plans_controller.dart';
+import '../billing/billing_screen.dart';
+import '../billing/thermal_receipt_dialog.dart';
 import 'digital_member_pass_card.dart';
 import 'members_controller.dart';
 
@@ -185,12 +187,15 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 icon: Icons.check_circle,
                 onPressed: () {
                   final paid = double.tryParse(amountController.text) ?? due;
+                  final rcptId = 'RCPT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+                  final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
                   MembersController.instance.recordFeePayment(
                     member.id,
                     paid,
                     paymentMode,
                     extendMonths: 1,
-                    receiptRef: refController.text.trim().isEmpty ? null : refController.text.trim(),
+                    receiptRef: refController.text.trim().isEmpty ? rcptId : refController.text.trim(),
                   );
                   Navigator.pop(context);
                   AppToast.showSuccess(
@@ -201,6 +206,24 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   setState(() {
                     _selectedMember = MembersController.instance.members.firstWhere((m) => m.id == member.id);
                   });
+
+                  // Immediately present thermal receipt dialog
+                  final invoice = InvoiceRecord(
+                    id: rcptId,
+                    memberName: member.fullName,
+                    memberRoll: member.memberNumber,
+                    memberPhone: member.phone,
+                    items: [
+                      InvoiceItem(name: '${member.planName} Membership Renewal', quantity: 1, unitPrice: paid),
+                    ],
+                    subtotal: paid,
+                    grandTotal: paid,
+                    paymentMode: paymentMode,
+                    paymentRef: refController.text.trim().isEmpty ? null : refController.text.trim(),
+                    status: 'PAID',
+                    date: dateStr,
+                  );
+                  PosThermalReceiptDialog.show(context, invoice);
                 },
               ),
             ],

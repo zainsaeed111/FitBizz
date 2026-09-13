@@ -12,6 +12,7 @@ import '../reception/reception_screen.dart';
 import '../billing/billing_screen.dart';
 import '../plans/membership_plans_screen.dart';
 import '../attendance/attendance_screen.dart';
+import '../settings/gym_settings_screen.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final AuthState authState;
@@ -124,6 +125,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         labelKey: 'nav_billing',
         badge: '3 Due',
         screen: BillingScreen(),
+      ));
+    }
+
+    // 6. Gym Settings & Hardware Hub (Owner / Super Admin)
+    if (widget.authState.canManageSettings) {
+      items.add(const NavigationItemConfig(
+        icon: Icons.settings_outlined,
+        activeIcon: Icons.settings,
+        labelKey: 'nav_settings',
+        label: 'Gym Settings',
+        screen: GymSettingsScreen(),
       ));
     }
 
