@@ -50,11 +50,43 @@ public class Member {
     @Column(name = "payment_reference")
     private String paymentReference;
 
+    @Column(name = "cash_tendered")
+    private Double cashTendered;
+
+    @Column(name = "change_returned")
+    private Double changeReturned;
+
     @Column(name = "qr_code_data")
     private String qrCodeData;
 
     @Column(nullable = false)
     private String status = "ACTIVE";
+
+    // Health & Diet Profile
+    private String gender = "Male";
+
+    @Column(name = "blood_group")
+    private String bloodGroup;
+
+    @Column(name = "current_weight_kg")
+    private Double currentWeightKg;
+
+    @Column(name = "target_weight_kg")
+    private Double targetWeightKg;
+
+    private String height;
+
+    @Column(name = "fitness_goal")
+    private String fitnessGoal;
+
+    @Column(name = "dietary_preference")
+    private String dietaryPreference;
+
+    @Column(name = "emergency_contact_name")
+    private String emergencyContactName;
+
+    @Column(name = "emergency_contact_phone")
+    private String emergencyContactPhone;
 
     @Column(name = "joined_at")
     private ZonedDateTime joinedAt = ZonedDateTime.now();
@@ -115,11 +147,44 @@ public class Member {
     public String getPaymentReference() { return paymentReference; }
     public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
 
+    public Double getCashTendered() { return cashTendered; }
+    public void setCashTendered(Double cashTendered) { this.cashTendered = cashTendered; }
+
+    public Double getChangeReturned() { return changeReturned; }
+    public void setChangeReturned(Double changeReturned) { this.changeReturned = changeReturned; }
+
     public String getQrCodeData() { return qrCodeData; }
     public void setQrCodeData(String qrCodeData) { this.qrCodeData = qrCodeData; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+
+    public String getBloodGroup() { return bloodGroup; }
+    public void setBloodGroup(String bloodGroup) { this.bloodGroup = bloodGroup; }
+
+    public Double getCurrentWeightKg() { return currentWeightKg; }
+    public void setCurrentWeightKg(Double currentWeightKg) { this.currentWeightKg = currentWeightKg; }
+
+    public Double getTargetWeightKg() { return targetWeightKg; }
+    public void setTargetWeightKg(Double targetWeightKg) { this.targetWeightKg = targetWeightKg; }
+
+    public String getHeight() { return height; }
+    public void setHeight(String height) { this.height = height; }
+
+    public String getFitnessGoal() { return fitnessGoal; }
+    public void setFitnessGoal(String fitnessGoal) { this.fitnessGoal = fitnessGoal; }
+
+    public String getDietaryPreference() { return dietaryPreference; }
+    public void setDietaryPreference(String dietaryPreference) { this.dietaryPreference = dietaryPreference; }
+
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public void setEmergencyContactName(String emergencyContactName) { this.emergencyContactName = emergencyContactName; }
+
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public void setEmergencyContactPhone(String emergencyContactPhone) { this.emergencyContactPhone = emergencyContactPhone; }
 
     public ZonedDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(ZonedDateTime joinedAt) { this.joinedAt = joinedAt; }
