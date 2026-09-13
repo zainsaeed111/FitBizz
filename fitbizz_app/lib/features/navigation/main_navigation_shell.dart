@@ -748,6 +748,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 class NavigationItemConfig {
   final IconData icon;
   final IconData activeIcon;
+  final String label;
   final String labelKey;
   final String? badge;
   final Widget screen;
@@ -755,6 +756,7 @@ class NavigationItemConfig {
   const NavigationItemConfig({
     required this.icon,
     required this.activeIcon,
+    this.label = '',
     required this.labelKey,
     this.badge,
     required this.screen,
