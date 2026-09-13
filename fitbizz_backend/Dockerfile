@@ -28,10 +28,11 @@ USER fitbizz
 COPY --from=builder /build/target/*.jar app.jar
 
 # Configuration defaults for Cloud Container Runtime
-ENV PORT=8080
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+ENV PORT=7860
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC -Xss256k -Djava.security.egd=file:/dev/./urandom"
 
+EXPOSE 7860
 EXPOSE 8080
 
 # Execute Spring Boot application on dynamic $PORT
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-7860} -jar app.jar"]

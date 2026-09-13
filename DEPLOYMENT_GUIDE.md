@@ -1,78 +1,111 @@
-# 🚀 FitBizz Cloud Backend 24/7 Free Deployment Guide
+# 🚀 FitBizz Backend — 100% Free Cloud Deployment (No Credit Card Required)
 
-This guide explains how to deploy the **FitBizz Spring Boot Backend + PostgreSQL Database** to **100% Free 24/7 Cloud Hosting** so that you and your users can access it continuously from the Flutter Mobile/Desktop app and Web Portal.
+This guide provides the **most optimized, completely free zero-card methods** to deploy your **FitBizz Spring Boot 3 Java 21 Backend + PostgreSQL Database** to the cloud.
 
 ---
 
-## 🌟 Recommended Free Hosting Platforms
+## 🏆 Top 3 Free "No Card Needed" Deployment Options
 
-| Platform | Free Tier Benefits | 24/7 Uptime | Database Included | Setup Time |
+| Platform | Free Tier Specs | Credit Card Needed? | Sleep Mode? | Best Use Case |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Render.com** *(Recommended)* | Free Web Service + Free PostgreSQL DB | ✅ Yes | ✅ Free Managed PostgreSQL | ~2 mins (1-Click) |
-| **2. Koyeb.com** | 512 MB RAM Nano Service, No spin-down sleep | ✅ Yes (Continuous 24/7) | Pair with Free Neon.tech DB | ~3 mins |
-| **3. Railway.app** | $5 monthly free credits | ✅ Yes | ✅ Free PostgreSQL plugin | ~2 mins |
+| **1. Render.com + Neon.tech** *(Recommended)* | 512 MB RAM Web Service + 0.5 GB Serverless Postgres | ❌ **NO Card** | Sleeps after 15m (Kept awake 24/7 with GitHub Cron) | **Fastest & Easiest** (1-Click Blueprint or Web Service) |
+| **2. Hugging Face Spaces (Docker)** | 2 vCPU, 16 GB RAM Container, Unlimited | ❌ **NO Card** | ❌ **Never Sleeps (Continuous 24/7)** | Heavy workloads & continuous zero-sleep |
+| **3. Koyeb.com + Neon.tech** | 512 MB RAM Nano instance | ❌ **NO Card** | ❌ **Active 24/7** | Direct Docker / GitHub deployment |
 
 ---
 
-## Option 1: 1-Click Deployment on Render.com (Recommended & Free)
+## 🥇 Method 1: Render.com + Neon PostgreSQL (Recommended & Fastest)
 
-Render provides a **free web service** and a **free managed PostgreSQL database**. Because this repository already includes [`render.yaml`](./render.yaml), Render sets up everything automatically!
-
-### Step 1: Push your code to GitHub
-Make sure your GitHub repository (`https://github.com/zainsaeed111/FitBizz`) is up to date with the latest code on the `main` branch.
-
-### Step 2: Connect to Render
-1. Go to [https://render.com](https://render.com) and create a free account (sign in with your GitHub account).
-2. Click **New +** in the top right and select **Blueprint**.
-3. Connect your **`FitBizz`** repository.
-4. Render will automatically detect [`render.yaml`](./render.yaml) and configure:
-   - **Service Name**: `fitbizz-backend` (Docker runtime)
-   - **Database**: `fitbizz-postgres` (PostgreSQL 16)
-5. Click **Apply**. Render will automatically build the Docker container, provision the PostgreSQL database, and deploy the live backend!
-
-### Step 3: Get your Live URL
-Once the deploy is complete (approx. 2–3 minutes), Render will give you a public URL such as:
-`https://fitbizz-backend.onrender.com`
+### Step 1: Create a Permanent Free Database on Neon.tech (1 min)
+1. Go to [https://neon.tech](https://neon.tech) and click **Sign Up** with GitHub (No credit card required).
+2. Create a new project named `fitbizz-db`.
+3. Under **Dashboard**, copy your **Connection String**. Select the `Java / JDBC` or standard `postgres://` format:
+   ```text
+   jdbc:postgresql://ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Note your:
+   - Host & DB Name: `ep-xxxx.us-east-2.aws.neon.tech/neondb`
+   - User: `neondb_owner` (or your user)
+   - Password: `<your-neon-password>`
 
 ---
 
-## Option 2: Deploying on Koyeb (Continuous 24/7 with Free Neon DB)
+### Step 2: Deploy Backend to Render.com (2 mins)
+1. Go to [https://dashboard.render.com](https://dashboard.render.com) and click **Sign in with GitHub** (No credit card required).
+2. Click **New +** (top right) ➔ **Web Service**.
+3. Select **Build and deploy from a Git repository** ➔ Click **Next**.
+4. Connect your **FitBizz** repository (`zainsaeed111/FitBizz`).
+5. Configure the deployment settings:
+   - **Name**: `fitbizz-backend`
+   - **Region**: Choose closest to you (e.g., *Oregon (US West)* or *Frankfurt (EU)*)
+   - **Branch**: `main`
+   - **Root Directory**: `fitbizz_backend`
+   - **Runtime**: **Docker** (Render will automatically detect `fitbizz_backend/Dockerfile`)
+   - **Instance Type**: **Free** (512 MB RAM, 0.1 CPU)
+6. Scroll down to **Environment Variables** and add:
+   | Key | Value |
+   | :--- | :--- |
+   | `PORT` | `8080` |
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<neon-host>/<db-name>?sslmode=require` |
+   | `SPRING_DATASOURCE_USERNAME` | `<neon-username>` |
+   | `SPRING_DATASOURCE_PASSWORD` | `<neon-password>` |
+   | `JWT_SECRET` | `c2VjdXJlX2ZpdGJpenpfand0X3NlY3JldF9rZXlfZm9yX2F1dGhlbnRpY2F0aW9uXzIwMjY=` |
+7. Click **Create Web Service**.
 
-Koyeb provides continuous 24/7 hosting without sleep mode on its free tier.
-
-1. Create a free PostgreSQL database at [https://neon.tech](https://neon.tech) and copy your connection string (`postgres://...`).
-2. Go to [https://app.koyeb.com](https://app.koyeb.com) and sign up with GitHub.
-3. Click **Create Service** -> **GitHub**.
-4. Select `FitBizz` repository and choose the `fitbizz_backend` subfolder or Dockerfile.
-5. In **Environment Variables**, add:
-   - `PORT`: `8080`
-   - `SPRING_DATASOURCE_URL`: `jdbc:postgresql://<neon-host>:5432/<db_name>?sslmode=require`
-   - `SPRING_DATASOURCE_USERNAME`: `<neon-user>`
-   - `SPRING_DATASOURCE_PASSWORD`: `<neon-password>`
-6. Click **Deploy**. Koyeb will output your live URL: `https://<your-app>.koyeb.app`.
+Render will build the Docker container and start your Spring Boot application!
+Once finished, your live URL will be ready (e.g., `https://fitbizz-backend.onrender.com`).
 
 ---
 
-## 📱 How to Connect Flutter App & Web Portal to your Live Backend
+## 🥈 Method 2: Hugging Face Spaces (Docker — 16 GB RAM Free 24/7)
 
-Once your backend is live (e.g. `https://fitbizz-backend.onrender.com`):
+Hugging Face provides **free 16GB RAM Docker instances** with **no sleep mode** and **no credit card**:
+
+1. Go to [https://huggingface.co](https://huggingface.co) and sign up.
+2. Click **Spaces** ➔ **Create new Space**.
+3. Set **Space Name**: `fitbizz-backend`, **License**: `MIT`, **SDK**: `Docker` (Blank).
+4. Set Space to **Public**.
+5. In **Settings** ➔ **Variables and secrets**, add:
+   - `SPRING_DATASOURCE_URL`: your Neon JDBC URL
+   - `SPRING_DATASOURCE_USERNAME`: your Neon username
+   - `SPRING_DATASOURCE_PASSWORD`: your Neon password
+   - `PORT`: `7860`
+6. Push the `fitbizz_backend` files to the Space repo or link your GitHub repo.
+7. Your backend will run 24/7 with zero downtime!
+
+---
+
+## ⚡ Step 3: Keep Free Render Instance Awake 24/7 (Prevent Sleep)
+
+Render Free web services go into sleep mode after 15 minutes of inactivity. We have already built an automated keep-alive system into this repository:
+
+### Option A: GitHub Actions (Already in your repo!)
+1. Go to your GitHub repository: `https://github.com/zainsaeed111/FitBizz/settings/secrets/actions`
+2. Add a new repository secret:
+   - **Name**: `RENDER_BACKEND_URL`
+   - **Value**: `https://fitbizz-backend.onrender.com` (your live Render URL)
+3. The GitHub Actions workflow in [`.github/workflows/keep-alive-cron.yml`](file:///d:/Flutter%20Projects/FitBizz/.github/workflows/keep-alive-cron.yml) will automatically ping `/api/v1/health` every 10 minutes to keep the backend warm 24/7.
+
+### Option B: Free External Pingers (Cron-job.org / UptimeRobot)
+1. Go to [https://cron-job.org](https://cron-job.org) (100% Free, no card).
+2. Create a cron job pointing to:
+   `https://<your-render-url>/api/v1/health`
+3. Set execution interval to **Every 10 minutes**.
+
+---
+
+## 📱 Connect Flutter Mobile/Desktop App & Web App to Live Cloud
+
+Once your backend is live:
 
 ### 1. In Flutter App (`fitbizz_app`):
-1. Open the app and log in as Gym Owner or Super Admin.
-2. Go to **Gym Settings** (Tab 4: **Cloud & Offline SQLite Sync**).
-3. In **Cloud Gateway API Endpoint**, paste your live URL:
+1. Open the app and log in.
+2. Go to **Gym Settings** (Tab: **Cloud & Offline Sync**).
+3. Set **Cloud Gateway API Endpoint** to:
    `https://fitbizz-backend.onrender.com/api/v1`
-4. Click **Force Full Sync**. The app will immediately handshake with your live cloud backend and sync all members, invoices, and attendance logs.
+4. Tap **Force Full Sync**.
 
 ### 2. In Next.js Web Portal (`fitbizz_web`):
-1. Navigate to `/settings` in the web portal.
+1. Navigate to `/settings`.
 2. Under **Cloud & Offline Sync Engine**, update the API Endpoint to your live URL.
 3. Click **Save All Settings**.
-
----
-
-## 💡 Keeping Free Tier Warmed Up (No Sleep)
-If deploying on Render free tier, web services sleep after 15 minutes of inactivity. You can keep it active 24/7 for free:
-1. Go to [https://uptimerobot.com](https://uptimerobot.com) (100% Free).
-2. Create a new **HTTP(s) Monitor** pointing to `https://<your-app>.onrender.com/api/v1/auth/login` with a **5-minute interval**.
-3. Your free backend will now stay awake and responsive 24 hours a day, 7 days a week!
