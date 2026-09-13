@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_locale.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -71,81 +72,84 @@ class _ReceptionScreenState extends State<ReceptionScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 800;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Reception Check-in Terminal', style: AppTypography.h1),
-                  Text('Fast barcode scanning & member access point', style: AppTypography.bodySecondary),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.green600.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.wifi, size: 16, color: AppColors.green600),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text('Offline Queue Ready', style: AppTypography.caption.copyWith(color: AppColors.green600, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // Main Terminal Interface
-          Flex(
-            direction: isDesktop ? Axis.horizontal : Axis.vertical,
+    return ListenableBuilder(
+      listenable: AppLocaleController.instance,
+      builder: (context, _) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: Scanner Input & Active Banner
-              Expanded(
-                flex: isDesktop ? 3 : 0,
-                child: Column(
-                  children: [
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Scan Member QR Card / Roll Number', style: AppTypography.h3),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text('Ready for optical QR camera scanners or Roll No search.', style: AppTypography.caption),
-                          const SizedBox(height: AppSpacing.md),
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tr('rec_title'), style: AppTypography.h1),
+                      Text(tr('rec_subtitle'), style: AppTypography.bodySecondary),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.green600.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wifi, size: 16, color: AppColors.green600),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(tr('local_engine_active'), style: AppTypography.caption.copyWith(color: AppColors.green600, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
 
-                          Row(
+              // Main Terminal Interface
+              Flex(
+                direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left: Scanner Input & Active Banner
+                  Expanded(
+                    flex: isDesktop ? 3 : 0,
+                    child: Column(
+                      children: [
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: AppTextField(
-                                  label: '',
-                                  hint: 'Scan QR payload or enter Roll No (e.g. PULSE-2026-1001)',
-                                  controller: _searchController,
-                                  prefixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.japaniPhal),
-                                  onSubmitted: _processCheckIn,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              AppButton(
-                                label: 'Verify & Check In',
-                                icon: Icons.check_circle_outline,
-                                onPressed: () => _processCheckIn(_searchController.text),
+                              Text(tr('rec_scan_qr'), style: AppTypography.h3),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(tr('rec_subtitle'), style: AppTypography.caption),
+                              const SizedBox(height: AppSpacing.md),
+
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppTextField(
+                                      label: '',
+                                      hint: 'MEM-1001, MEM-1002...',
+                                      controller: _searchController,
+                                      prefixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.japaniPhal),
+                                      onSubmitted: _processCheckIn,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  AppButton(
+                                    label: tr('rec_manual_checkin'),
+                                    icon: Icons.check_circle_outline,
+                                    onPressed: () => _processCheckIn(_searchController.text),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
 
                     const SizedBox(height: AppSpacing.md),
 
@@ -248,6 +252,8 @@ class _ReceptionScreenState extends State<ReceptionScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_locale.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -108,130 +109,135 @@ class _BillingScreenState extends State<BillingScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 800;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ListenableBuilder(
+      listenable: AppLocaleController.instance,
+      builder: (context, _) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Billing & Recurring Invoices', style: AppTypography.h1),
-                  Text('Manage tenant membership plans, payments, and financial ledger', style: AppTypography.bodySecondary),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tr('bill_title'), style: AppTypography.h1),
+                      Text(tr('bill_subtitle'), style: AppTypography.bodySecondary),
+                    ],
+                  ),
+                  AppButton(
+                    label: tr('bill_collect_fee'),
+                    icon: Icons.receipt_long_outlined,
+                    onPressed: _showCreateInvoiceModal,
+                  ),
                 ],
               ),
-              AppButton(
-                label: 'Create Invoice',
-                icon: Icons.receipt_long_outlined,
-                onPressed: _showCreateInvoiceModal,
+              const SizedBox(height: AppSpacing.lg),
+
+              // KPI Metric Cards
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = isDesktop ? 3 : 1;
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: isDesktop ? 2.2 : 2.5,
+                    children: [
+                      AppStatCard(
+                        title: tr('bill_total_collected'),
+                        value: formatMoney(48920),
+                        subtitle: '342 invoices',
+                        icon: Icons.account_balance_wallet_outlined,
+                        iconColor: AppColors.blue600,
+                      ),
+                      AppStatCard(
+                        title: tr('stat_monthly_revenue'),
+                        value: formatMoney(44120),
+                        subtitle: '90.2% collection rate',
+                        icon: Icons.check_circle_outline,
+                        iconColor: AppColors.green600,
+                      ),
+                      AppStatCard(
+                        title: tr('bill_pending_dues'),
+                        value: formatMoney(4800),
+                        subtitle: '12 accounts pending',
+                        icon: Icons.warning_amber_outlined,
+                        iconColor: AppColors.red600,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Invoice Ledger Table
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Text('Invoice Transactions Ledger', style: AppTypography.h3),
+                    ),
+                    const Divider(height: 1),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _invoices.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = _invoices[index];
+                        final isPaid = item['status'] == 'PAID';
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.all(AppSpacing.md),
+                          leading: CircleAvatar(
+                            backgroundColor: isPaid ? AppColors.green600.withValues(alpha: 0.1) : AppColors.red600.withValues(alpha: 0.1),
+                            child: Icon(
+                              isPaid ? Icons.receipt_outlined : Icons.priority_high,
+                              color: isPaid ? AppColors.green600 : AppColors.red600,
+                              size: 20,
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              Text(item['id']!, style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
+                              const SizedBox(width: AppSpacing.sm),
+                              AppBadge(
+                                label: item['status']!,
+                                variant: isPaid ? AppBadgeVariant.active : AppBadgeVariant.danger,
+                              ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            'Member: ${item['member']} • Plan: ${item['plan']} • Method: ${item['method']}',
+                            style: AppTypography.caption,
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(item['amount']!, style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
+                              Text('Date: ${item['date']}', style: AppTypography.caption),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // KPI Metric Cards
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = isDesktop ? 3 : 1;
-              return GridView.count(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisSpacing: AppSpacing.md,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: isDesktop ? 2.2 : 2.5,
-                children: const [
-                  AppStatCard(
-                    title: 'Total Monthly Invoiced',
-                    value: '\$48,920.00',
-                    subtitle: '342 active invoices',
-                    icon: Icons.account_balance_wallet_outlined,
-                    iconColor: AppColors.blue600,
-                  ),
-                  AppStatCard(
-                    title: 'Collected Payments',
-                    value: '\$44,120.00',
-                    subtitle: '90.2% collection rate',
-                    icon: Icons.check_circle_outline,
-                    iconColor: AppColors.green600,
-                  ),
-                  AppStatCard(
-                    title: 'Outstanding Overdue',
-                    value: '\$4,800.00',
-                    subtitle: '12 accounts pending action',
-                    icon: Icons.warning_amber_outlined,
-                    iconColor: AppColors.red600,
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // Invoice Ledger Table
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Text('Invoice Transactions Ledger', style: AppTypography.h3),
-                ),
-                const Divider(height: 1),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _invoices.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = _invoices[index];
-                    final isPaid = item['status'] == 'PAID';
-
-                    return ListTile(
-                      contentPadding: const EdgeInsets.all(AppSpacing.md),
-                      leading: CircleAvatar(
-                        backgroundColor: isPaid ? AppColors.green600.withValues(alpha: 0.1) : AppColors.red600.withValues(alpha: 0.1),
-                        child: Icon(
-                          isPaid ? Icons.receipt_outlined : Icons.priority_high,
-                          color: isPaid ? AppColors.green600 : AppColors.red600,
-                          size: 20,
-                        ),
-                      ),
-                      title: Row(
-                        children: [
-                          Text(item['id']!, style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
-                          const SizedBox(width: AppSpacing.sm),
-                          AppBadge(
-                            label: item['status']!,
-                            variant: isPaid ? AppBadgeVariant.active : AppBadgeVariant.danger,
-                          ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        'Member: ${item['member']} • Plan: ${item['plan']} • Method: ${item['method']}',
-                        style: AppTypography.caption,
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(item['amount']!, style: AppTypography.body.copyWith(fontWeight: FontWeight.w700)),
-                          Text('Date: ${item['date']}', style: AppTypography.caption),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_locale.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -131,9 +132,23 @@ class _LoginScreenState extends State<LoginScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 950;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+    return ListenableBuilder(
+      listenable: AppLocaleController.instance,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: Stack(
+            children: [
+              isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+              const Positioned(
+                top: 16,
+                right: 16,
+                child: AppLanguageSelector(),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -350,12 +365,12 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome Back',
+                tr('login_welcome'),
                 style: AppTypography.h2.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 2),
               Text(
-                'Enter your registered Email, Phone, or ID to sign in.',
+                tr('login_subtitle'),
                 style: AppTypography.bodySecondary.copyWith(fontSize: 13),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -390,8 +405,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 listenable: _identifierController,
                 builder: (context, _) {
                   return AppTextField(
-                    label: 'Email, Phone, or User/Gym ID',
-                    hint: 'e.g. owner@metrofitness.com, 03001234567, or SUPER-001',
+                    label: tr('login_identifier_label'),
+                    hint: tr('login_identifier_hint'),
                     controller: _identifierController,
                     prefixIcon: Icon(_getIdentifierIcon(_identifierController.text), size: 18),
                   );
@@ -401,7 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Password
               AppTextField(
-                label: 'Password',
+                label: tr('login_password_label'),
                 hint: '••••••••',
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -439,13 +454,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xs),
-                      Text('Remember session', style: AppTypography.caption),
+                      Text(tr('login_remember_me'), style: AppTypography.caption),
                     ],
                   ),
                   TextButton(
                     onPressed: _showForgotPasswordModal,
                     child: Text(
-                      'Forgot password?',
+                      tr('login_forgot_password'),
                       style: AppTypography.caption.copyWith(color: AppColors.japaniPhalDark, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -455,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Primary Sign In Button
               AppButton(
-                label: 'Sign In',
+                label: tr('login_sign_in'),
                 fullWidth: true,
                 isLoading: widget.authState.isLoading,
                 onPressed: _handleLogin,

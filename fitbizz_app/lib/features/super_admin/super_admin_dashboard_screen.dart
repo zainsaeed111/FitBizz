@@ -1038,80 +1038,8 @@ _Keep these credentials confidential. You can change your password anytime insid
           ),
           Row(
             children: [
-              // Functional Region & Language Selector Dropdown
-              PopupMenuButton<AppRegion>(
-                initialValue: AppLocaleController.instance.currentRegion,
-                tooltip: 'Select Region & Language',
-                onSelected: (region) {
-                  AppLocaleController.instance.setRegion(region);
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: AppRegion.pakistan,
-                    child: Row(
-                      children: [
-                        Text('🇵🇰', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Text('Pakistan (PKR - اردو)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: AppRegion.usa,
-                    child: Row(
-                      children: [
-                        Text('🇺🇸', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Text('United States (USD - English)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: AppRegion.uk,
-                    child: Row(
-                      children: [
-                        Text('🇬🇧', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Text('United Kingdom (GBP - English)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: AppRegion.uae,
-                    child: Row(
-                      children: [
-                        Text('🇦🇪', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Text('UAE (AED - العربية)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.stone300),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppLocaleController.instance.currentRegion.countryCode,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.stone600),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${AppLocaleController.instance.currentRegion.countryName} (${AppLocaleController.instance.currencyCode} - ${AppLocaleController.instance.currency})',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone900),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.stone500),
-                    ],
-                  ),
-                ),
-              ),
+              // Universal Language Selector
+              const AppLanguageSelector(),
               const SizedBox(width: AppSpacing.sm),
               // Open Owner Portal Button (Outlined)
               OutlinedButton.icon(

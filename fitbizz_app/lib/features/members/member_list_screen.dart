@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_locale.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -227,70 +228,73 @@ class _MemberListScreenState extends State<MemberListScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 900;
 
-    final filtered = _members.where((m) {
-      final query = _searchQuery.toLowerCase();
-      return m['name']!.toLowerCase().contains(query) ||
-          m['number']!.toLowerCase().contains(query) ||
-          m['phone']!.toLowerCase().contains(query);
-    }).toList();
+    return ListenableBuilder(
+      listenable: AppLocaleController.instance,
+      builder: (context, _) {
+        final filtered = _members.where((m) {
+          final query = _searchQuery.toLowerCase();
+          return m['name']!.toLowerCase().contains(query) ||
+              m['number']!.toLowerCase().contains(query) ||
+              m['phone']!.toLowerCase().contains(query);
+        }).toList();
 
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Header Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Member Directory', style: AppTypography.h1),
-                  Text('High-density operational member database & status tracking', style: AppTypography.bodySecondary),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tr('mem_title'), style: AppTypography.h1),
+                      Text(tr('mem_subtitle'), style: AppTypography.bodySecondary),
+                    ],
+                  ),
+                  AppButton(
+                    label: tr('mem_add_member'),
+                    icon: Icons.person_add,
+                    onPressed: _showAddMemberModal,
+                  ),
                 ],
               ),
-              AppButton(
-                label: 'Add Member',
-                icon: Icons.person_add,
-                onPressed: _showAddMemberModal,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.lg),
 
-          // Search & Filter Toolbar
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  label: '',
-                  hint: 'Search by member name, ID, or phone...',
-                  controller: _searchController,
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                ),
+              // Search & Filter Toolbar
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: '',
+                      hint: tr('mem_search'),
+                      controller: _searchController,
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    child: Text(
+                      '${filtered.length} / ${_members.length}',
+                      style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.md),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                ),
-                child: Text(
-                  'Showing ${filtered.length} of ${_members.length} Members',
-                  style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.lg),
 
           // Content Area (Split View on Desktop when a member is selected)
           Expanded(
@@ -355,6 +359,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 
