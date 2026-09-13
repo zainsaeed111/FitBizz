@@ -137,52 +137,53 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
   Widget _buildTopHeader(BuildContext context, bool isDesktop, String dateStr) {
     final ctrl = AttendanceController.instance;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text('Attendance & Biometrics', style: AppTypography.h1),
-                  const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.green600.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.green600),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.green600, shape: BoxShape.circle)),
-                        const SizedBox(width: 5),
-                        Text(
-                          '${ctrl.deviceConfig.deviceModel} (Live)',
-                          style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.green600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Dual member & staff tracking, ZKTeco IP socket bridge, and geofenced self check-in.',
-                style: AppTypography.caption.copyWith(color: AppColors.stone500),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isStacked = constraints.maxWidth < 780;
 
-        // Date Picker & Quick Actions
-        Wrap(
+        final titleWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Text(tr('nav_attendance'), style: AppTypography.h1),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.green600.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.green600),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.green600, shape: BoxShape.circle)),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${ctrl.deviceConfig.deviceModel} (Live)',
+                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.green600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Dual member & staff tracking, ZKTeco IP socket bridge, and geofenced self check-in.',
+              style: AppTypography.caption.copyWith(color: AppColors.stone500),
+            ),
+          ],
+        );
+
+        final actionButtons = Wrap(
           spacing: 8,
           runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
@@ -213,8 +214,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
               onPressed: () => _showBiometricSimulatorModal(context),
             ),
           ],
-        ),
-      ],
+        );
+
+        if (isStacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleWidget,
+              const SizedBox(height: AppSpacing.sm),
+              actionButtons,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleWidget),
+            const SizedBox(width: AppSpacing.md),
+            actionButtons,
+          ],
+        );
+      },
     );
   }
 
@@ -296,47 +317,75 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      label: 'Search Members',
-                      hint: 'Search by Name, Roll # (METRO-202609-0001), or Plan...',
-                      controller: _searchController,
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.done_all, size: 16),
-                    label: const Text('Mark All Present', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                    onPressed: () {
-                      ctrl.markAllMembersPresent(dateStr);
-                      AppToast.showSuccess(context, 'Attendance Saved', 'Marked all enrolled members as Present.');
-                    },
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.red600,
-                      side: const BorderSide(color: AppColors.red600),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Mark All Absent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                    onPressed: () {
-                      ctrl.markAllMembersAbsent(dateStr);
-                      AppToast.showInfo(context, 'Attendance Updated', 'Reset member roster to Absent.');
-                    },
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 700;
+                  final searchField = AppTextField(
+                    label: 'Search Members',
+                    hint: 'Search by Name, Roll # (METRO-202609-0001), or Plan...',
+                    controller: _searchController,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                  );
+
+                  final buttons = Row(
+                    mainAxisSize: isCompact ? MainAxisSize.max : MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        flex: isCompact ? 1 : 0,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.green600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.done_all, size: 16),
+                          label: const Text('Mark All Present', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          onPressed: () {
+                            ctrl.markAllMembersPresent(dateStr);
+                            AppToast.showSuccess(context, 'Attendance Saved', 'Marked all enrolled members as Present.');
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        flex: isCompact ? 1 : 0,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.red600,
+                            side: const BorderSide(color: AppColors.red600),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Mark All Absent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          onPressed: () {
+                            ctrl.markAllMembersAbsent(dateStr);
+                            AppToast.showInfo(context, 'Attendance Updated', 'Reset member roster to Absent.');
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      children: [
+                        searchField,
+                        const SizedBox(height: AppSpacing.sm),
+                        buttons,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: searchField),
+                      const SizedBox(width: AppSpacing.sm),
+                      buttons,
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: AppSpacing.sm),
 
@@ -486,47 +535,74 @@ class _AttendanceScreenState extends State<AttendanceScreen> with SingleTickerPr
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.stone200),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isStacked = constraints.maxWidth < 650;
+              final titles = const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Staff Shift Rosters & In/Out Log', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Text('Trainers, Nutritionists, Floor Coaches, and Front Desk Staff', style: TextStyle(fontSize: 11, color: AppColors.stone500)),
                 ],
-              ),
-              Row(
+              );
+
+              final actionBtns = Row(
+                mainAxisSize: isStacked ? MainAxisSize.max : MainAxisSize.min,
                 children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green600,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  Expanded(
+                    flex: isStacked ? 1 : 0,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.done_all, size: 15),
+                      label: const Text('All Staff Present', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        ctrl.markAllStaffPresent(dateStr);
+                        AppToast.showSuccess(context, 'Staff Attendance', 'Marked all gym staff as Present on duty.');
+                      },
                     ),
-                    icon: const Icon(Icons.done_all, size: 15),
-                    label: const Text('All Staff Present', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      ctrl.markAllStaffPresent(dateStr);
-                      AppToast.showSuccess(context, 'Staff Attendance', 'Marked all gym staff as Present on duty.');
-                    },
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.red600,
-                      side: const BorderSide(color: AppColors.red600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  Expanded(
+                    flex: isStacked ? 1 : 0,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.red600,
+                        side: const BorderSide(color: AppColors.red600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.close, size: 15),
+                      label: const Text('All Absent', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        ctrl.markAllStaffAbsent(dateStr);
+                      },
                     ),
-                    icon: const Icon(Icons.close, size: 15),
-                    label: const Text('All Absent', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      ctrl.markAllStaffAbsent(dateStr);
-                    },
                   ),
                 ],
-              ),
-            ],
+              );
+
+              if (isStacked) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titles,
+                    const SizedBox(height: AppSpacing.sm),
+                    actionBtns,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  titles,
+                  actionBtns,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
