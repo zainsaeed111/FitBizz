@@ -11,6 +11,7 @@ import '../members/member_list_screen.dart';
 import '../reception/reception_screen.dart';
 import '../billing/billing_screen.dart';
 import '../plans/membership_plans_screen.dart';
+import '../attendance/attendance_screen.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final AuthState authState;
@@ -92,6 +93,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         labelKey: role == UserRole.trainer ? 'nav_trainers' : 'nav_members',
         badge: '450',
         screen: const MemberListScreen(),
+      ));
+
+      // 3b. Attendance & Biometrics
+      items.add(const NavigationItemConfig(
+        icon: Icons.how_to_reg_outlined,
+        activeIcon: Icons.how_to_reg,
+        labelKey: 'nav_attendance',
+        badge: 'Live',
+        screen: AttendanceScreen(),
       ));
     }
 
