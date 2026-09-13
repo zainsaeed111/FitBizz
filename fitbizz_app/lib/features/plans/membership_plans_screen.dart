@@ -17,6 +17,13 @@ class MembershipPlansScreen extends StatefulWidget {
 }
 
 class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch latest plans from backend API if online
+    MembershipPlansController.instance.fetchPlansFromApi();
+  }
+
   void _showPlanDialog({MembershipPlan? planToEdit}) {
     final isEditing = planToEdit != null;
     final nameController = TextEditingController(text: planToEdit?.name ?? '');
@@ -27,11 +34,15 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
     final additionalFeeController = TextEditingController(
         text: (planToEdit?.additionalCharges ?? 0.0).toInt().toString());
     final trainerNoteController = TextEditingController(
-        text: planToEdit?.trainerSupportNote ?? 'Beginner Workout Guidance');
+        text: planToEdit?.trainerSupportNote ?? 'Beginner Workout Coaching (First 2 Weeks)');
     final badgeController = TextEditingController(
-        text: planToEdit?.badge ?? (isEditing ? '' : 'Custom'));
+        text: planToEdit?.badge ?? (isEditing ? '' : 'Special Tier'));
 
     int durationMonths = planToEdit?.durationMonths ?? 1;
+    bool isCustomDuration = ![1, 3, 6, 12].contains(durationMonths);
+    final customMonthsController = TextEditingController(
+        text: isCustomDuration ? durationMonths.toString() : '2');
+
     bool hasTrainerSupport = planToEdit?.hasTrainerSupport ?? false;
     bool hasMealPlan = planToEdit?.hasMealPlan ?? false;
     bool hasMobileApp = planToEdit?.hasMobileApp ?? true;
@@ -44,32 +55,39 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final activeMonths = isCustomDuration
+                ? (int.tryParse(customMonthsController.text) ?? 1).clamp(1, 60)
+                : durationMonths;
+
             final adm = double.tryParse(admissionFeeController.text) ?? 0;
             final mth = double.tryParse(monthlyFeeController.text) ?? 0;
             final add = double.tryParse(additionalFeeController.text) ?? 0;
-            final total = adm + (mth * durationMonths) + add;
+            final total = adm + (mth * activeMonths) + add;
+            final renewal = (mth * activeMonths) + add;
 
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: AppColors.japaniPhal.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.card_membership, color: AppColors.japaniPhalDark, size: 20),
+                    child: const Icon(Icons.card_membership, color: AppColors.japaniPhalDark, size: 22),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    isEditing ? 'Edit Membership Plan' : 'Configure New Membership Plan',
-                    style: AppTypography.h2,
+                  Expanded(
+                    child: Text(
+                      isEditing ? 'Edit Membership Plan' : 'Configure New Membership Plan',
+                      style: AppTypography.h2.copyWith(fontSize: 18),
+                    ),
                   ),
                 ],
               ),
               content: SizedBox(
-                width: 540,
+                width: 580,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -99,42 +117,102 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
                       ),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Duration Selector
-                      Text('Plan Duration (Billing Cycle):', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
+                      // Spacious, Uncongested Duration Selector
+                      Text(
+                        'Plan Duration & Billing Cycle:',
+                        style: AppTypography.body.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Non-congested grid of duration options
                       Wrap(
-                        spacing: 8,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: [
-                          ChoiceChip(
-                            label: const Text('1 Month (Monthly)'),
-                            selected: durationMonths == 1,
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: durationMonths == 1 ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
-                            onSelected: (_) => setDialogState(() => durationMonths = 1),
+                          _buildDurationOptionCard(
+                            label: '1 Month',
+                            subtitle: 'Monthly',
+                            isSelected: !isCustomDuration && durationMonths == 1,
+                            onTap: () {
+                              setDialogState(() {
+                                isCustomDuration = false;
+                                durationMonths = 1;
+                              });
+                            },
                           ),
-                          ChoiceChip(
-                            label: const Text('3 Months (Quarterly)'),
-                            selected: durationMonths == 3,
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: durationMonths == 3 ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
-                            onSelected: (_) => setDialogState(() => durationMonths = 3),
+                          _buildDurationOptionCard(
+                            label: '3 Months',
+                            subtitle: 'Quarterly',
+                            isSelected: !isCustomDuration && durationMonths == 3,
+                            onTap: () {
+                              setDialogState(() {
+                                isCustomDuration = false;
+                                durationMonths = 3;
+                              });
+                            },
                           ),
-                          ChoiceChip(
-                            label: const Text('6 Months (Semi-Annual)'),
-                            selected: durationMonths == 6,
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: durationMonths == 6 ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
-                            onSelected: (_) => setDialogState(() => durationMonths = 6),
+                          _buildDurationOptionCard(
+                            label: '6 Months',
+                            subtitle: 'Semi-Annual',
+                            isSelected: !isCustomDuration && durationMonths == 6,
+                            onTap: () {
+                              setDialogState(() {
+                                isCustomDuration = false;
+                                durationMonths = 6;
+                              });
+                            },
                           ),
-                          ChoiceChip(
-                            label: const Text('12 Months (Annual)'),
-                            selected: durationMonths == 12,
-                            selectedColor: AppColors.japaniPhalDark,
-                            labelStyle: TextStyle(color: durationMonths == 12 ? Colors.white : AppColors.stone800, fontWeight: FontWeight.bold, fontSize: 11),
-                            onSelected: (_) => setDialogState(() => durationMonths = 12),
+                          _buildDurationOptionCard(
+                            label: '12 Months',
+                            subtitle: 'Annual VIP',
+                            isSelected: !isCustomDuration && durationMonths == 12,
+                            onTap: () {
+                              setDialogState(() {
+                                isCustomDuration = false;
+                                durationMonths = 12;
+                              });
+                            },
+                          ),
+                          _buildDurationOptionCard(
+                            label: '⚙️ Custom',
+                            subtitle: 'Custom Duration',
+                            isSelected: isCustomDuration,
+                            onTap: () {
+                              setDialogState(() {
+                                isCustomDuration = true;
+                              });
+                            },
                           ),
                         ],
                       ),
+
+                      // Custom Duration Input Field
+                      if (isCustomDuration) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.japaniPhal.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.japaniPhal.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.schedule, color: AppColors.japaniPhalDark, size: 20),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: AppTextField(
+                                  label: 'Custom Duration (Number of Months)',
+                                  hint: 'Enter months (e.g. 2, 4, 9, 24)',
+                                  controller: customMonthsController,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (_) => setDialogState(() {}),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.md),
 
                       // Fee Configuration Fields
@@ -173,140 +251,158 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
                       ),
                       const SizedBox(height: AppSpacing.sm),
 
-                      // Upfront Calculated Summary Pill
+                      // Upfront Calculated Summary Card
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: AppColors.stone100,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.stone300),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Total Upfront Enrollment Fee:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.stone700)),
-                            Text(formatMoney(total), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.japaniPhalDark)),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Upfront Total: Admission + ($activeMonths Mo × Fee) + Extra',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.stone600),
+                                ),
+                                Text(
+                                  'Recurring Renewal: ${formatMoney(renewal)} / $activeMonths Mo',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.stone600, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              formatMoney(total),
+                              style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.japaniPhalDark, fontSize: 16),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
 
-                      // Included Features Checklist
-                      Text('Included Features & Add-ons:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
+                      // Included Features & Perks Checkbox/Switch List
+                      Text('Plan Inclusions & Benefits:', style: AppTypography.body.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
 
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Trainer Assistance / Guidance Included', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                        subtitle: Text(hasTrainerSupport ? 'First-time form guidance or PT sessions' : 'Independent self-training only', style: const TextStyle(fontSize: 11, color: AppColors.stone500)),
+                      // Trainer Guidance Toggle
+                      _buildFeatureTile(
+                        icon: Icons.sports_gymnastics,
+                        title: 'Trainer Assistance / Personal Coaching',
+                        subtitle: 'Coaching, stance instruction & routine guidance included',
                         value: hasTrainerSupport,
-                        activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => hasTrainerSupport = val ?? false),
+                        onChanged: (v) => setDialogState(() => hasTrainerSupport = v),
                       ),
-
                       if (hasTrainerSupport)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.only(left: 36, bottom: 8),
                           child: AppTextField(
-                            label: 'Trainer Support Details',
-                            hint: 'e.g. Beginner Workout Guidance (First 2 Weeks)',
+                            label: 'Trainer Coaching Details / Scope',
+                            hint: 'e.g. Beginner Workout Coaching (First 2 Weeks)',
                             controller: trainerNoteController,
                           ),
                         ),
 
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Customized Diet & Meal Plan Blueprint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      // Diet / Meal Plan
+                      _buildFeatureTile(
+                        icon: Icons.restaurant_menu,
+                        title: 'Personalized Meal / Diet Blueprint',
+                        subtitle: 'Nutrition breakdown & dietary macros schedule',
                         value: hasMealPlan,
-                        activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => hasMealPlan = val ?? false),
+                        onChanged: (v) => setDialogState(() => hasMealPlan = v),
                       ),
 
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Member Mobile App Access & QR Pass', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      // Mobile App Pass
+                      _buildFeatureTile(
+                        icon: Icons.qr_code_2,
+                        title: 'Mobile App Pass (QR Attendance & Logs)',
+                        subtitle: 'Customer access via smartphone application',
                         value: hasMobileApp,
-                        activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => hasMobileApp = val ?? true),
+                        onChanged: (v) => setDialogState(() => hasMobileApp = v),
                       ),
 
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Locker, Sauna & Changing Room Access', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      // Locker & Sauna
+                      _buildFeatureTile(
+                        icon: Icons.lock_outline,
+                        title: 'Dedicated Locker & Changing Area Access',
+                        subtitle: 'Secure member locker box & amenities',
                         value: hasLockerAccess,
-                        activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => hasLockerAccess = val ?? true),
+                        onChanged: (v) => setDialogState(() => hasLockerAccess = v),
                       ),
 
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Multi-Branch Access (All Gym Locations)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      // Multi-Branch Access
+                      _buildFeatureTile(
+                        icon: Icons.hub_outlined,
+                        title: 'Multi-Branch Arena Network Pass',
+                        subtitle: 'Allow check-in across all gym branch locations',
                         value: isMultiBranch,
-                        activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => isMultiBranch = val ?? false),
+                        onChanged: (v) => setDialogState(() => isMultiBranch = v),
                       ),
 
+                      const Divider(height: 24),
+
+                      // Default Plan Checkbox
                       CheckboxListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Set as Default Membership Plan for New Enrollees', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.japaniPhalDark)),
+                        title: const Text('Set as Default Membership Tier for New Members', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        subtitle: const Text('Pre-selected automatically during member admissions', style: TextStyle(fontSize: 11)),
                         value: isDefault,
                         activeColor: AppColors.japaniPhalDark,
-                        onChanged: (val) => setDialogState(() => isDefault = val ?? false),
+                        onChanged: (v) => setDialogState(() => isDefault = v ?? false),
                       ),
                     ],
                   ),
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(tr('cancel')),
+                AppButton(
+                  label: 'Cancel',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => Navigator.pop(context),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.japaniPhalDark,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
+                AppButton(
+                  label: isEditing ? 'Save Changes' : 'Create Plan',
                   onPressed: () {
                     if (nameController.text.trim().isEmpty) {
-                      AppToast.showError(context, 'Validation Error', 'Plan Name is required');
+                      AppToast.showError(context, 'Validation Error', 'Plan Name is required.');
                       return;
                     }
 
-                    final newPlan = MembershipPlan(
+                    final admFee = double.tryParse(admissionFeeController.text) ?? 0.0;
+                    final mthFee = double.tryParse(monthlyFeeController.text) ?? 0.0;
+                    final addFee = double.tryParse(additionalFeeController.text) ?? 0.0;
+
+                    final plan = MembershipPlan(
                       id: planToEdit?.id ?? 'plan_${DateTime.now().millisecondsSinceEpoch}',
                       name: nameController.text.trim(),
-                      durationMonths: durationMonths,
-                      admissionFee: double.tryParse(admissionFeeController.text) ?? 1000.0,
-                      monthlyFee: double.tryParse(monthlyFeeController.text) ?? 3500.0,
-                      additionalCharges: double.tryParse(additionalFeeController.text) ?? 0.0,
+                      durationMonths: activeMonths,
+                      admissionFee: admFee,
+                      monthlyFee: mthFee,
+                      additionalCharges: addFee,
                       hasTrainerSupport: hasTrainerSupport,
                       trainerSupportNote: hasTrainerSupport ? trainerNoteController.text.trim() : null,
                       hasMealPlan: hasMealPlan,
                       hasMobileApp: hasMobileApp,
                       hasLockerAccess: hasLockerAccess,
                       isMultiBranch: isMultiBranch,
-                      badge: badgeController.text.trim().isEmpty ? 'Custom' : badgeController.text.trim(),
+                      badge: badgeController.text.trim().isEmpty ? 'Active' : badgeController.text.trim(),
                       isDefault: isDefault,
                     );
 
                     if (isEditing) {
-                      MembershipPlansController.instance.updatePlan(newPlan);
-                      AppToast.showSuccess(context, 'Plan Updated', 'Updated "${newPlan.name}" successfully.');
+                      MembershipPlansController.instance.updatePlan(plan);
+                      AppToast.showSuccess(context, 'Plan Updated', 'Membership package ${plan.name} has been updated.');
                     } else {
-                      MembershipPlansController.instance.addPlan(newPlan);
-                      AppToast.showSuccess(context, 'Plan Created', 'Added "${newPlan.name}" to active membership offerings.');
+                      MembershipPlansController.instance.addPlan(plan);
+                      AppToast.showSuccess(context, 'Plan Created', 'New membership package ${plan.name} added.');
                     }
-                    Navigator.pop(ctx);
+
+                    Navigator.pop(context);
                   },
-                  child: Text(isEditing ? tr('save_changes') : 'Save & Publish Plan'),
                 ),
               ],
             );
@@ -316,29 +412,114 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
     );
   }
 
+  Widget _buildDurationOptionCard({
+    required String label,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.japaniPhalDark : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.japaniPhalDark : AppColors.stone300,
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.japaniPhalDark.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.stone900,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: isSelected ? Colors.white.withValues(alpha: 0.85) : AppColors.stone500,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      secondary: Icon(icon, color: value ? AppColors.japaniPhalDark : AppColors.stone400, size: 20),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.stone500)),
+      value: value,
+      activeThumbColor: AppColors.japaniPhalDark,
+      onChanged: onChanged,
+    );
+  }
+
   void _confirmDeletePlan(MembershipPlan plan) {
+    if (MembershipPlansController.instance.plans.length <= 1) {
+      AppToast.showError(context, 'Cannot Delete', 'You must have at least one active membership plan.');
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete "${plan.name}"?'),
-        content: const Text(
-          'Are you sure you want to remove this membership plan? Existing members subscribed to this plan will remain active.',
-          style: TextStyle(fontSize: 13),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline, color: AppColors.red600),
+            const SizedBox(width: AppSpacing.sm),
+            const Text('Delete Membership Plan'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${plan.name}"? Members currently registered under this plan will remain unaffected, but new members cannot select it.',
+          style: AppTypography.body,
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.secondary,
             onPressed: () => Navigator.pop(ctx),
-            child: Text(tr('cancel')),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.red600, foregroundColor: Colors.white),
+          AppButton(
+            label: 'Delete Plan',
+            variant: AppButtonVariant.danger,
             onPressed: () {
               MembershipPlansController.instance.deletePlan(plan.id);
               Navigator.pop(ctx);
-              AppToast.showSuccess(context, 'Plan Deleted', 'Plan "${plan.name}" removed.');
+              AppToast.showSuccess(context, 'Plan Deleted', '${plan.name} has been removed.');
             },
-            child: Text(tr('delete')),
           ),
         ],
       ),
@@ -347,68 +528,71 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 950;
-
     return ListenableBuilder(
       listenable: Listenable.merge([
-        AppLocaleController.instance,
         MembershipPlansController.instance,
+        AppLocaleController.instance,
       ]),
       builder: (context, _) {
         final plans = MembershipPlansController.instance.plans;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Membership Plans & Packages', style: AppTypography.h1),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Configure pricing, admission fees, trainer support & member perks',
-                        style: AppTypography.bodySecondary,
-                      ),
-                    ],
-                  ),
-                  AppButton(
-                    label: 'Create New Plan',
-                    icon: Icons.add,
-                    onPressed: () => _showPlanDialog(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // Plans Showcase Grid
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = isDesktop ? 3 : (screenWidth > 600 ? 2 : 1);
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: AppSpacing.md,
-                      mainAxisSpacing: AppSpacing.md,
-                      mainAxisExtent: 380,
+        return Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Membership Plans & Packages',
+                          style: AppTypography.h1,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Configure tiered pricing, billing cycles, trainer perks, and meal benefits for your gym members.',
+                          style: AppTypography.body.copyWith(color: AppColors.stone500),
+                        ),
+                      ],
                     ),
-                    itemCount: plans.length,
-                    itemBuilder: (context, index) {
-                      final plan = plans[index];
-                      return _buildPlanCard(plan);
-                    },
-                  );
-                },
-              ),
-            ],
+                    Row(
+                      children: [
+                        AppButton(
+                          label: 'Create New Plan',
+                          icon: Icons.add,
+                          onPressed: () => _showPlanDialog(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Plans Grid View
+                Expanded(
+                  child: plans.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 380,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            mainAxisExtent: 420,
+                          ),
+                          itemCount: plans.length,
+                          itemBuilder: (context, idx) {
+                            final plan = plans[idx];
+                            return _buildPlanCard(plan);
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -419,7 +603,6 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
     final isDefault = plan.isDefault;
 
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -429,150 +612,217 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDefault ? 0.05 : 0.02),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row (Badge + Default Status + Menu)
+          // Header: Name & Badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isDefault
-                      ? AppColors.japaniPhal.withValues(alpha: 0.15)
-                      : AppColors.stone100,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  plan.badge,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: isDefault ? AppColors.japaniPhalDark : AppColors.stone700,
-                  ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      plan.name,
+                      style: AppTypography.h2.copyWith(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (isDefault) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.japaniPhalDark,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('DEFAULT', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              Row(
-                children: [
-                  if (isDefault)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.green600.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text('DEFAULT', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.green600)),
+              if (plan.badge.isNotEmpty && !isDefault)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.japaniPhal.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    plan.badge,
+                    style: const TextStyle(
+                      color: AppColors.japaniPhalDark,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
                     ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 18, color: AppColors.stone500),
-                    onSelected: (action) {
-                      if (action == 'edit') {
-                        _showPlanDialog(planToEdit: plan);
-                      } else if (action == 'delete') {
-                        _confirmDeletePlan(plan);
-                      } else if (action == 'default') {
-                        MembershipPlansController.instance.setDefaultPlan(plan.id);
-                        AppToast.showSuccess(context, 'Default Plan Updated', '"${plan.name}" is now the default plan.');
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Edit Plan')])),
-                      if (!isDefault)
-                        const PopupMenuItem(value: 'default', child: Row(children: [Icon(Icons.star_border, size: 16), SizedBox(width: 8), Text('Set as Default')])),
-                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete Plan', style: TextStyle(color: Colors.red))])),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Duration Subtitle
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 14, color: AppColors.stone400),
+              const SizedBox(width: 4),
+              Text(
+                plan.durationLabel,
+                style: const TextStyle(fontSize: 12, color: AppColors.stone600, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Pricing Breakdown Box
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.stone100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Monthly Fee:', style: TextStyle(fontSize: 11, color: AppColors.stone600)),
+                    Text('${formatMoney(plan.monthlyFee)} / mo', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Admission / Reg:', style: TextStyle(fontSize: 11, color: AppColors.stone600)),
+                    Text(formatMoney(plan.admissionFee), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                if (plan.additionalCharges > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Additional / Tax:', style: TextStyle(fontSize: 11, color: AppColors.stone600)),
+                      Text(formatMoney(plan.additionalCharges), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                 ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Plan Name
-          Text(plan.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.stone900)),
-          Text(plan.durationLabel, style: const TextStyle(fontSize: 11.5, color: AppColors.stone500, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-
-          // Price Tag
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                formatMoney(plan.monthlyFee),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.japaniPhalDark),
-              ),
-              const SizedBox(width: 4),
-              const Text('/ mo', style: TextStyle(fontSize: 11, color: AppColors.stone500, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Admission Fee: ${formatMoney(plan.admissionFee)} • Total Initial: ${formatMoney(plan.totalEnrollmentFee)}',
-            style: const TextStyle(fontSize: 10.5, color: AppColors.stone600, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          const Divider(color: AppColors.stone200, height: 1),
-          const SizedBox(height: 10),
-
-          // Feature Badges
-          Expanded(
-            child: ListView(
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildFeatureRow(Icons.fitness_center, 'Full Gym Floor Access', isIncluded: true),
-                _buildFeatureRow(
-                  Icons.sports,
-                  plan.hasTrainerSupport
-                      ? (plan.trainerSupportNote ?? 'Trainer Guidance Included')
-                      : 'Self Training Only (No Trainer)',
-                  isIncluded: plan.hasTrainerSupport,
+                const Divider(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Upfront Enrollment:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.stone700)),
+                    Text(
+                      formatMoney(plan.totalEnrollmentFee),
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppColors.japaniPhalDark),
+                    ),
+                  ],
                 ),
-                _buildFeatureRow(Icons.restaurant_menu, 'Diet & Meal Plan Blueprint', isIncluded: plan.hasMealPlan),
-                _buildFeatureRow(Icons.qr_code_2, 'Mobile QR Pass & Attendance', isIncluded: plan.hasMobileApp),
-                _buildFeatureRow(Icons.lock_clock, 'Locker & Shower Access', isIncluded: plan.hasLockerAccess),
-                _buildFeatureRow(Icons.hub, 'Multi-Branch Arena Pass', isIncluded: plan.isMultiBranch),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Action Button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDefault ? AppColors.japaniPhalDark : AppColors.stone700,
-                side: BorderSide(color: isDefault ? AppColors.japaniPhalDark : AppColors.stone300),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          // Inclusions Checklist
+          const Text('Included Benefits:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.stone700)),
+          const SizedBox(height: 6),
+
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildBenefitRow(
+                    icon: Icons.sports_gymnastics,
+                    text: plan.hasTrainerSupport
+                        ? (plan.trainerSupportNote ?? 'Trainer Guidance Included')
+                        : 'Self-Workout (No Personal Trainer)',
+                    isPositive: plan.hasTrainerSupport,
+                  ),
+                  _buildBenefitRow(
+                    icon: Icons.restaurant_menu,
+                    text: plan.hasMealPlan ? 'Personalized Meal / Diet Blueprint' : 'Standard Diet Plan Not Included',
+                    isPositive: plan.hasMealPlan,
+                  ),
+                  _buildBenefitRow(
+                    icon: Icons.qr_code_2,
+                    text: plan.hasMobileApp ? 'Mobile App QR Pass & Attendance' : 'Card / Manual Pass',
+                    isPositive: plan.hasMobileApp,
+                  ),
+                  _buildBenefitRow(
+                    icon: Icons.lock_outline,
+                    text: plan.hasLockerAccess ? 'Locker & Changing Facilities' : 'No Dedicated Locker',
+                    isPositive: plan.hasLockerAccess,
+                  ),
+                  _buildBenefitRow(
+                    icon: Icons.hub_outlined,
+                    text: plan.isMultiBranch ? 'All-Branch Arena Access' : 'Single Home Branch Only',
+                    isPositive: plan.isMultiBranch,
+                  ),
+                ],
               ),
-              icon: const Icon(Icons.tune, size: 14),
-              label: const Text('Edit Package', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-              onPressed: () => _showPlanDialog(planToEdit: plan),
             ),
+          ),
+
+          const Divider(height: 16),
+
+          // Action Buttons
+          Row(
+            children: [
+              if (!isDefault)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      MembershipPlansController.instance.setDefaultPlan(plan.id);
+                      AppToast.showSuccess(context, 'Default Plan Set', '${plan.name} is now the default package.');
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      side: const BorderSide(color: AppColors.stone300),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Set Default', style: TextStyle(fontSize: 11, color: AppColors.stone700, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              if (!isDefault) const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.stone600),
+                tooltip: 'Edit Plan',
+                onPressed: () => _showPlanDialog(planToEdit: plan),
+              ),
+              if (!isDefault)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.red600),
+                  tooltip: 'Delete Plan',
+                  onPressed: () => _confirmDeletePlan(plan),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureRow(IconData icon, String text, {required bool isIncluded}) {
+  Widget _buildBenefitRow({
+    required IconData icon,
+    required String text,
+    required bool isPositive,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           Icon(
-            isIncluded ? Icons.check_circle : Icons.remove_circle_outline,
+            isPositive ? Icons.check_circle : Icons.remove_circle_outline,
             size: 14,
-            color: isIncluded ? AppColors.green600 : AppColors.stone400,
+            color: isPositive ? AppColors.green600 : AppColors.stone400,
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -580,9 +830,8 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
               text,
               style: TextStyle(
                 fontSize: 11,
-                color: isIncluded ? AppColors.stone800 : AppColors.stone400,
-                fontWeight: isIncluded ? FontWeight.w600 : FontWeight.normal,
-                decoration: isIncluded ? null : TextDecoration.lineThrough,
+                color: isPositive ? AppColors.stone800 : AppColors.stone400,
+                fontWeight: isPositive ? FontWeight.w600 : FontWeight.normal,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

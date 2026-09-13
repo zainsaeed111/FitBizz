@@ -1,7 +1,7 @@
 class MembershipPlan {
   final String id;
   String name;
-  int durationMonths; // 1 = Monthly, 3 = Quarterly, 6 = Semi-Annual, 12 = Yearly
+  int durationMonths; // 1, 3, 6, 12 or any custom integer
   double admissionFee;
   double monthlyFee;
   double additionalCharges;
@@ -39,6 +39,8 @@ class MembershipPlan {
 
   String get durationLabel {
     switch (durationMonths) {
+      case 1:
+        return 'Monthly (1 Month)';
       case 3:
         return 'Quarterly (3 Months)';
       case 6:
@@ -46,8 +48,50 @@ class MembershipPlan {
       case 12:
         return 'Yearly (12 Months)';
       default:
-        return 'Monthly (1 Month)';
+        return '$durationMonths Months (Custom Duration)';
     }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'durationMonths': durationMonths,
+      'durationDays': durationMonths * 30,
+      'admissionFee': admissionFee,
+      'monthlyFee': monthlyFee,
+      'additionalCharges': additionalCharges,
+      'price': totalEnrollmentFee,
+      'currency': 'PKR',
+      'hasTrainerSupport': hasTrainerSupport,
+      'trainerSupportNote': trainerSupportNote,
+      'hasMealPlan': hasMealPlan,
+      'hasMobileApp': hasMobileApp,
+      'hasLockerAccess': hasLockerAccess,
+      'isMultiBranch': isMultiBranch,
+      'badge': badge,
+      'isDefault': isDefault,
+      'status': 'ACTIVE',
+    };
+  }
+
+  factory MembershipPlan.fromJson(Map<String, dynamic> json) {
+    return MembershipPlan(
+      id: json['id']?.toString() ?? 'plan_${DateTime.now().millisecondsSinceEpoch}',
+      name: json['name']?.toString() ?? 'Custom Plan',
+      durationMonths: (json['durationMonths'] as num?)?.toInt() ?? 1,
+      admissionFee: (json['admissionFee'] as num?)?.toDouble() ?? 0.0,
+      monthlyFee: (json['monthlyFee'] as num?)?.toDouble() ?? 0.0,
+      additionalCharges: (json['additionalCharges'] as num?)?.toDouble() ?? 0.0,
+      hasTrainerSupport: json['hasTrainerSupport'] == true,
+      trainerSupportNote: json['trainerSupportNote']?.toString(),
+      hasMealPlan: json['hasMealPlan'] == true,
+      hasMobileApp: json['hasMobileApp'] != false,
+      hasLockerAccess: json['hasLockerAccess'] != false,
+      isMultiBranch: json['isMultiBranch'] == true,
+      badge: json['badge']?.toString() ?? 'Active',
+      isDefault: json['isDefault'] == true,
+    );
   }
 
   MembershipPlan copyWith({

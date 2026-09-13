@@ -55,12 +55,14 @@ export default function MembersAdmissionPage() {
 
   const getTierPrice = (tier: string) => {
     switch (tier) {
+      case "SILVER_PLAN":
+        return 7000;
+      case "GOLD_VIP":
+        return 11500;
       case "QUARTERLY_PRO":
-        return 13500;
-      case "YEARLY_VIP":
-        return 48000;
+        return 15000;
       default:
-        return 5000;
+        return 4500;
     }
   };
 
@@ -378,35 +380,56 @@ export default function MembersAdmissionPage() {
                   </div>
                 </div>
 
-                {/* 3 Configurable Membership Tiers */}
+                {/* 4 Configurable Membership Tiers */}
                 <div className="space-y-2">
                   <label className="block font-bold text-slate-900">2. Choose Membership Tier Plan:</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                     <div
                       onClick={() => setFormData({ ...formData, membershipType: "MONTHLY_STANDARD" })}
                       className={`p-3 rounded-xl border cursor-pointer transition ${formData.membershipType === "MONTHLY_STANDARD" ? "border-orange-500 bg-orange-50/80 shadow-sm" : "border-slate-200 bg-white"}`}
                     >
-                      <span className="font-bold text-slate-900 block text-xs">Monthly Standard</span>
-                      <span className="text-orange-600 font-extrabold text-sm block mt-1">PKR 5,000</span>
-                      <span className="text-[10px] text-slate-500">1 Month Floor Access</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">Basic Plan</span>
+                        <span className="text-[9px] bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded font-bold">1 Mo</span>
+                      </div>
+                      <span className="text-orange-600 font-extrabold text-sm block mt-1">Rs 4,500</span>
+                      <span className="text-[10px] text-slate-500 block">Self-Workout Pass</span>
+                    </div>
+
+                    <div
+                      onClick={() => setFormData({ ...formData, membershipType: "SILVER_PLAN" as any })}
+                      className={`p-3 rounded-xl border cursor-pointer transition ${formData.membershipType === ("SILVER_PLAN" as any) ? "border-orange-500 bg-orange-50/80 shadow-sm" : "border-slate-200 bg-white"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">Silver Plan</span>
+                        <span className="text-[9px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded font-bold">Trainer</span>
+                      </div>
+                      <span className="text-orange-600 font-extrabold text-sm block mt-1">Rs 7,000</span>
+                      <span className="text-[10px] text-slate-500 block">Coaching + Diet Plan</span>
+                    </div>
+
+                    <div
+                      onClick={() => setFormData({ ...formData, membershipType: "GOLD_VIP" as any })}
+                      className={`p-3 rounded-xl border cursor-pointer transition ${formData.membershipType === ("GOLD_VIP" as any) ? "border-orange-500 bg-orange-50/80 shadow-sm" : "border-slate-200 bg-white"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">Gold VIP</span>
+                        <span className="text-[9px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">1-on-1</span>
+                      </div>
+                      <span className="text-orange-600 font-extrabold text-sm block mt-1">Rs 11,500</span>
+                      <span className="text-[10px] text-slate-500 block">Dedicated PT + Multi-Branch</span>
                     </div>
 
                     <div
                       onClick={() => setFormData({ ...formData, membershipType: "QUARTERLY_PRO" })}
                       className={`p-3 rounded-xl border cursor-pointer transition ${formData.membershipType === "QUARTERLY_PRO" ? "border-orange-500 bg-orange-50/80 shadow-sm" : "border-slate-200 bg-white"}`}
                     >
-                      <span className="font-bold text-slate-900 block text-xs">Quarterly Pro</span>
-                      <span className="text-orange-600 font-extrabold text-sm block mt-1">PKR 13,500</span>
-                      <span className="text-[10px] text-slate-500">3 Months + Classes</span>
-                    </div>
-
-                    <div
-                      onClick={() => setFormData({ ...formData, membershipType: "YEARLY_VIP" })}
-                      className={`p-3 rounded-xl border cursor-pointer transition ${formData.membershipType === "YEARLY_VIP" ? "border-orange-500 bg-orange-50/80 shadow-sm" : "border-slate-200 bg-white"}`}
-                    >
-                      <span className="font-bold text-slate-900 block text-xs">Yearly VIP</span>
-                      <span className="text-orange-600 font-extrabold text-sm block mt-1">PKR 48,000</span>
-                      <span className="text-[10px] text-slate-500">12 Months Full VIP</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">Quarterly Pro</span>
+                        <span className="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold">3 Mo</span>
+                      </div>
+                      <span className="text-orange-600 font-extrabold text-sm block mt-1">Rs 15,000</span>
+                      <span className="text-[10px] text-slate-500 block">3 Months Bundle</span>
                     </div>
                   </div>
                 </div>

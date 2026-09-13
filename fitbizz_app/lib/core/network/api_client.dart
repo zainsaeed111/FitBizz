@@ -41,4 +41,21 @@ class ApiClient {
       body: jsonEncode(body),
     );
   }
+
+  Future<http.Response> put(String path, Object body) async {
+    final headers = await _headers();
+    return await http.put(
+      Uri.parse('$baseUrl$path'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+  }
+
+  Future<http.Response> delete(String path) async {
+    final headers = await _headers();
+    return await http.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: headers,
+    );
+  }
 }
